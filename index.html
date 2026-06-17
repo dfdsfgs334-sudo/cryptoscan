@@ -1584,7 +1584,11 @@ function tvUrl(sym,interval,fullTools=false){
     autosize:true,symbol:tvSym(sym),interval:TV_TF[interval]||'1',
     timezone:'Europe/Moscow',theme:'dark',style:'1',locale:'ru',
     backgroundColor:'rgba(7,7,20,1)',gridColor:'rgba(26,26,56,0.3)',
-    hide_top_toolbar:!fullTools,hide_legend:false,hide_side_toolbar:!fullTools,
+    // Легенда (название/цена в углу графика) скрыта в маленьких ячейках сетки —
+    // там уже есть собственная шапка cell-bar с ценой и %, дублирование не нужно,
+    // а отключение лишнего UI-элемента немного снижает работу рендеринга TradingView.
+    // В полном модальном окне (fullTools=true) легенда остаётся видимой как раньше.
+    hide_top_toolbar:!fullTools,hide_legend:!fullTools,hide_side_toolbar:!fullTools,
     allow_symbol_change:fullTools,save_image:false,
     withdateranges:false,details:false,hotlist:false,calendar:false,
     hide_volume:false,
@@ -1642,6 +1646,12 @@ function renderGrid(){
       cell.style.order=idx;
       cell.style.borderColor=glow.border;
       cell.style.boxShadow=glow.shadow;
+      // iframe создаётся БЕЗ src — реальный адрес графика подставляется чуть позже,
+      // с задержкой по индексу ячейки (см. ниже). Каждый TradingView-виджет — это
+      // тяжёлый отдельный движок (свой JS, WebSocket, canvas), и если создать 6-9 штук
+      // в один и тот же момент, браузер запускает их все параллельно и каждый из них
+      // тормозит остальные за общие ресурсы CPU/сети. Распределяя старт во времени,
+      // первые графики появляются заметно быстрее, а не все одновременно через долгую заморозку.
       cell.innerHTML=`
         <div class="cell-bar" id="cb-${sym}">
           <span class="cb-chg ${cls}">${sign}${(c.change||0).toFixed(2)}%</span>
@@ -1651,7 +1661,7 @@ function renderGrid(){
           ${c.signal&&c.signal!=='none'?`<div class="cb-fire ${c.signal}"></div>`:''}
           <span class="cb-sym">${sym}</span>
         </div>
-        <iframe class="cell-frame" id="frame-${sym}" src="${tvUrl(sym,tf)}" scrolling="no" allowtransparency="true" frameborder="0" loading="lazy"></iframe>`;
+        <iframe class="cell-frame" id="frame-${sym}" data-src="${tvUrl(sym,tf)}" scrolling="no" allowtransparency="true" frameborder="0"></iframe>`;
       // Клик по шапке ячейки → открыть полный график
       cell.querySelector('.cell-bar').addEventListener('click',()=>openChartModal(sym));
       // Клик по самому графику тоже открывает модалку, но скролл/зум/драг работают внутри iframe.
@@ -1659,6 +1669,17 @@ function renderGrid(){
       // wheel-события и обычное взаимодействие с TradingView идут напрямую в iframe (pointer-events:auto).
       attachCellClickOverlay(cell,sym);
       area.appendChild(cell);
+    });
+    // Поэтапный запуск графиков: каждый следующий iframe получает src с задержкой
+    // STAGGER_DELAY_MS относительно предыдущего, вместо того чтобы все 6-9+ виджетов
+    // стартовали в один и тот же тик event loop. Первые 1-2 графика прогружаются почти
+    // сразу, остальные подключаются следом — суммарно ощущается заметно быстрее.
+    const STAGGER_DELAY_MS=180;
+    gridSyms.forEach((sym,idx)=>{
+      setTimeout(()=>{
+        const fr=document.getElementById('frame-'+sym);
+        if(fr&&fr.dataset.src) fr.src=fr.dataset.src;
+      },idx*STAGGER_DELAY_MS);
     });
   } else {
     // Набор тот же — обновляем порядок отображения (без пересоздания iframe) и цифры
