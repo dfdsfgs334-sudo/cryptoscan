@@ -1,0 +1,2271 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CryptoScan</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#08020f;--bg2:#0f0620;--bg3:#160a2e;--bg4:#1e0f3d;
+  --border:#2a1550;--b2:#43217a;
+  --text:#d6c8ff;--t2:#7c6aa8;--t3:#3d2a66;
+  --purple:#a020ff;--pl:#c285ff;--p3:#2a0f55;
+  --green:#00ffe1;--gbg:#0a2e2a;--gb:#0d6b5e;
+  --red:#ff00aa;--rbg:#2e0a20;--rb:#7a1255;
+  --blue:#a020ff;--bluebg:#2a0f55;--blueb:#7c0fd6;
+  --yellow:#fff200;
+}
+html,body{height:100%;overflow:hidden;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:14px;
+  background:
+    radial-gradient(circle at 15% 0%, rgba(160,32,255,.10), transparent 50%),
+    radial-gradient(circle at 85% 100%, rgba(0,255,225,.07), transparent 50%),
+    var(--bg);
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+
+.app{height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* ══ TOPBAR ══════════════════════════════════════════════ */
+.topbar{height:48px;min-height:48px;background:linear-gradient(90deg,var(--bg3),var(--bg2));border-bottom:1px solid var(--purple);box-shadow:0 0 18px rgba(160,32,255,.2);display:flex;align-items:center;flex-shrink:0;position:relative}
+.tb-logo{width:96px;min-width:96px;height:100%;display:flex;align-items:center;justify-content:center;border-right:1px solid var(--border);padding:0 10px;cursor:default}
+.logo-text{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:800;color:#fff;line-height:1.1;text-align:center;letter-spacing:1px;text-shadow:0 0 10px var(--red)}
+.logo-text span{color:var(--green);text-shadow:0 0 10px var(--green)}
+.tb-exchanges{display:flex;align-items:center;height:100%;border-right:1px solid var(--border);padding:0 4px}
+.exch-btn{height:32px;margin:auto 0;padding:0 10px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border:1px solid transparent;background:transparent;border-radius:6px;transition:.15s;white-space:nowrap}
+.exch-btn:hover{color:var(--text);background:var(--bg4)}
+.exch-btn.on{color:#000;background:var(--green);box-shadow:0 0 14px rgba(0,255,225,.5);font-weight:800}
+.tb-section{display:flex;align-items:center;height:100%;border-right:1px solid var(--border);padding:0 4px;gap:2px}
+.tf-btn{height:30px;padding:0 8px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border:none;background:transparent;border-radius:6px;transition:.15s;white-space:nowrap}
+.tf-btn:hover{color:var(--text);background:var(--bg4)}
+.tf-btn.on{color:#fff;background:var(--red);box-shadow:0 0 14px rgba(255,0,170,.5)}
+.col-btn{height:26px;padding:0 6px;font-size:13px;color:var(--t2);cursor:pointer;border:none;background:transparent;border-radius:5px;transition:.15s}
+.col-btn:hover{color:var(--text);background:var(--bg4)}
+.col-btn.on{color:#000;background:var(--pl);font-weight:800;box-shadow:0 0 10px rgba(194,133,255,.5)}
+.tb-range{position:relative;height:100%;border-right:1px solid var(--border)}
+.range-trigger{display:flex;align-items:center;gap:8px;height:100%;padding:0 12px;cursor:pointer;transition:.15s}
+.range-trigger:hover{background:var(--bg4)}
+.range-label{font-size:14px;color:var(--t2)}
+.range-val{font-size:14px;color:var(--green);font-weight:700;text-shadow:0 0 6px var(--green)}
+.range-gear{color:var(--t2);flex-shrink:0;transition:transform .25s}
+.tb-range.open .range-gear{transform:rotate(45deg);color:var(--green)}
+.rdot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:blink 1.8s infinite}
+.range-menu{display:none;position:absolute;top:100%;left:0;min-width:200px;background:var(--bg3);border:1px solid var(--purple);border-radius:10px;box-shadow:0 8px 28px rgba(160,32,255,.35);z-index:60;overflow:hidden;margin-top:6px}
+.tb-range.open .range-menu{display:block}
+.range-item{padding:11px 16px;font-size:14px;color:var(--t2);cursor:pointer;transition:.12s;font-family:'JetBrains Mono',monospace}
+.range-item:hover{background:var(--bg4);color:var(--text)}
+.range-item.sel{color:var(--green);font-weight:700;background:rgba(0,255,225,.08)}
+.tb-right{margin-left:auto;height:100%;display:flex;align-items:center;padding:0 6px;gap:3px;border-left:1px solid var(--border)}
+.tb-icon{width:34px;height:34px;border-radius:7px;border:1px solid var(--border);background:var(--bg4);color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:.15s;flex-shrink:0}
+.tb-icon:hover{border-color:var(--b2);color:var(--text)}
+.tb-icon.on{background:var(--yellow);border-color:var(--yellow);color:#000;box-shadow:0 0 16px rgba(255,242,0,.5);font-weight:800}
+.tb-icon.live-btn{background:rgba(255,0,170,.12);border-color:var(--red);color:var(--red);text-shadow:0 0 8px var(--red)}
+.stdot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 1.8s infinite}
+
+/* ══ GRID ════════════════════════════════════════════════ */
+.grid-area{flex:1;min-height:0;background:var(--border);display:grid;gap:3px;overflow:hidden;padding:3px}
+.grid-loading{grid-column:1/-1;grid-row:1/-1;display:flex;align-items:center;justify-content:center;color:var(--t2);font-size:14px;letter-spacing:.5px}
+.cell{background:var(--bg2);border-radius:8px;border:1px solid var(--border);overflow:hidden;display:flex;flex-direction:column;position:relative;min-height:0;cursor:pointer;transition:.2s}
+.cell:hover{border-color:var(--b2)}
+.cell:hover .cell-bar{background:rgba(160,32,255,.12)}
+.cell-bar{height:28px;min-height:28px;background:rgba(0,0,0,.35);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:5px;padding:0 6px;flex-shrink:0;overflow:hidden;transition:background .15s}
+.cb-chg{font-size:12px;font-weight:800;padding:1px 5px;border-radius:4px}
+.cb-chg.up{background:rgba(0,255,225,.14);color:var(--green);text-shadow:0 0 6px rgba(0,255,225,.6)}
+.cb-chg.dn{background:rgba(255,0,170,.14);color:var(--red);text-shadow:0 0 6px rgba(255,0,170,.6)}
+.cb-price{font-size:12px;color:var(--t2)}
+.cb-vol{font-size:11px;color:var(--t3)}
+.cb-fire{width:7px;height:7px;border-radius:50%;flex-shrink:0;box-shadow:0 0 6px currentColor}
+.cb-fire.pump{background:var(--green);color:var(--green)}
+.cb-fire.dump{background:var(--red);color:var(--red)}
+.cb-burst{font-size:11px;font-weight:800;color:var(--yellow);background:rgba(255,242,0,.1);border:1px solid var(--yellow);border-radius:4px;padding:1px 5px;white-space:nowrap;text-shadow:0 0 6px rgba(255,242,0,.5)}
+.cb-sym{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:800;color:rgba(255,255,255,.12);position:absolute;left:50%;transform:translateX(-50%);pointer-events:none;letter-spacing:1.5px}
+.cell-frame{flex:1;min-height:0;width:100%;border:none;display:block;pointer-events:auto}
+.cell-overlay-click{position:absolute;left:0;right:0;bottom:0;top:28px;cursor:pointer;z-index:2}
+/* Glow по силе движения — выставляется инлайн через JS (box-shadow + border-color) */
+
+/* ══ UNIVERSAL MODAL ════════════════════════════════════ */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(8,2,15,.82);z-index:100;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal-box{background:var(--bg2);border:1px solid var(--purple);box-shadow:0 0 40px rgba(160,32,255,.25);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;animation:fadeIn .18s ease}
+.modal-head{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0}
+.modal-title{font-size:14px;font-weight:700;color:#fff;flex:1}
+.modal-x{font-size:18px;color:var(--t2);cursor:pointer;padding:2px 6px;border-radius:5px;line-height:1}
+.modal-x:hover{color:var(--red);background:var(--rbg)}
+
+/* ══ CHART MODAL ════════════════════════════════════════ */
+#chart-modal .modal-box{width:94vw;max-width:1400px;height:88vh}
+.chart-modal-tf{display:flex;gap:3px}
+.chart-modal-frame{flex:1;min-height:0;border:none;width:100%}
+
+/* ══ SEARCH MODAL ═══════════════════════════════════════ */
+#search-modal .modal-box{width:580px;max-width:95vw}
+.search-wrap{padding:14px 16px;position:relative}
+.search-input{width:100%;background:var(--bg3);border:1px solid var(--b2);border-radius:8px;color:var(--text);padding:10px 14px;font-size:14px;outline:none;transition:.15s;font-family:'JetBrains Mono',monospace}
+.search-input:focus{border-color:var(--green);box-shadow:0 0 0 2px rgba(0,255,225,.15)}
+.search-input::placeholder{color:var(--t2)}
+.search-results{max-height:400px;overflow-y:auto;border-top:1px solid var(--border)}
+.search-results::-webkit-scrollbar{width:4px}
+.search-results::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.search-item{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;transition:background .1s;border-bottom:1px solid rgba(42,21,80,.5)}
+.search-item:last-child{border-bottom:none}
+.search-item:hover,.search-item.active{background:rgba(160,32,255,.14)}
+.si-sym{font-size:14px;font-weight:700;color:#fff;min-width:80px}
+.si-name{font-size:13px;color:var(--t2);flex:1}
+.si-chg{font-size:13px;font-weight:600;min-width:60px;text-align:right}
+.si-vol{font-size:12px;color:var(--t3);min-width:60px;text-align:right}
+.search-empty{padding:30px;text-align:center;color:var(--t2);font-size:13px}
+.search-hint{padding:10px 16px;font-size:12px;color:var(--t3);border-top:1px solid var(--border);display:flex;gap:16px}
+.search-hint span{display:flex;align-items:center;gap:4px}
+.hint-key{background:var(--bg4);border:1px solid var(--b2);border-radius:3px;padding:1px 5px;font-size:12px;color:var(--t2)}
+
+/* ══ ALERTS MODAL ═══════════════════════════════════════ */
+#alerts-modal .modal-box{width:860px;max-width:95vw;height:75vh}
+.alerts-tabs{display:flex;border-bottom:1px solid var(--border)}
+.atab{flex:1;padding:10px;text-align:center;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;transition:.1s}
+.atab.on{color:var(--text);border-bottom-color:var(--green)}
+.alerts-body{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.alerts-subtabs{display:flex;border-bottom:1px solid var(--border);padding:0 16px;gap:0}
+.astab{padding:8px 16px;font-size:13px;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;transition:.1s;white-space:nowrap}
+.astab.on{color:var(--text);border-bottom-color:var(--purple)}
+.alerts-list-area{flex:1;overflow-y:auto;padding:16px}
+.alerts-list-area::-webkit-scrollbar{width:4px}
+.alerts-list-area::-webkit-scrollbar-thumb{background:var(--b2)}
+.no-alerts-msg{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;color:var(--t2)}
+.no-alerts-msg p{font-size:14px}
+.create-alert-btn{display:flex;align-items:center;gap:8px;padding:10px 20px;background:var(--green);border:none;border-radius:8px;color:#000;font-size:13px;font-weight:800;cursor:pointer;transition:.15s;box-shadow:0 0 16px rgba(0,255,225,.4)}
+.create-alert-btn:hover{box-shadow:0 0 24px rgba(0,255,225,.6)}
+.al-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);margin-bottom:6px}
+.al-item-sym{font-weight:700;color:#fff;font-size:13px;min-width:50px}
+.al-item-cond{font-size:13px;color:var(--t2);flex:1}
+.al-item-status{font-size:11px;padding:2px 6px;border-radius:3px}
+.al-item-status.active{background:var(--gbg);color:var(--green);border:1px solid var(--gb)}
+.al-item-status.fired{background:rgba(160,32,255,.15);color:var(--pl);border:1px solid rgba(160,32,255,.3)}
+.al-del-btn{color:var(--t3);cursor:pointer;font-size:14px;padding:2px 4px;border-radius:4px}
+.al-del-btn:hover{color:var(--red);background:var(--rbg)}
+/* Форма создания алерта */
+.alert-form{padding:16px;display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--border)}
+.af-row{display:flex;gap:8px;align-items:center}
+.af-label{font-size:12px;color:var(--t2);min-width:60px;flex-shrink:0}
+.af-inp{flex:1;background:var(--bg4);border:1px solid var(--b2);border-radius:6px;color:var(--text);padding:6px 10px;font-size:13px;outline:none;font-family:'JetBrains Mono',monospace}
+.af-inp:focus{border-color:var(--pl)}
+.af-inp::placeholder{color:var(--t3)}
+select.af-inp option{background:var(--bg3)}
+.tg-section{padding:12px 16px;border-top:1px solid var(--border);background:var(--bg3)}
+.tg-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.tg-row:last-child{margin-bottom:0}
+.tg-lbl{font-size:12px;color:var(--t2);min-width:60px}
+.tg-in{flex:1;background:var(--bg4);border:1px solid var(--b2);border-radius:5px;color:var(--text);padding:4px 8px;font-size:13px;outline:none;font-family:'JetBrains Mono',monospace}
+.tg-in:focus{border-color:var(--pl)}
+.tg-in::placeholder{color:var(--t3)}
+.add-alert-submit{padding:8px 20px;background:var(--green);border:none;border-radius:7px;color:#000;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 0 14px rgba(0,255,225,.35)}
+.add-alert-submit:hover{box-shadow:0 0 20px rgba(0,255,225,.55)}
+
+/* ══ FILTER MODAL ═══════════════════════════════════════ */
+#filter-modal .modal-box{width:640px;max-width:95vw}
+.filter-body{padding:20px;display:flex;flex-direction:column;gap:16px}
+.filter-section{display:flex;flex-direction:column;gap:8px}
+.filter-section-title{font-size:13px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.5px}
+.filter-row{display:flex;align-items:center;gap:10px}
+.filter-label{font-size:13px;color:var(--t2);min-width:160px;flex-shrink:0}
+.filter-inp{background:var(--bg4);border:1px solid var(--b2);border-radius:6px;color:var(--text);padding:6px 10px;font-size:13px;outline:none;width:120px;font-family:'JetBrains Mono',monospace}
+.filter-inp:focus{border-color:var(--pl)}
+.filter-inp::placeholder{color:var(--t3)}
+.filter-unit{font-size:12px;color:var(--t3)}
+.filter-between{font-size:13px;color:var(--t3);margin:0 4px}
+.filter-divider{height:1px;background:var(--border)}
+.filter-actions{display:flex;gap:8px;padding:0 20px 16px;justify-content:flex-end}
+.btn-primary{padding:8px 20px;background:var(--purple);border:none;border-radius:7px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 0 14px rgba(160,32,255,.4)}
+.btn-primary:hover{box-shadow:0 0 20px rgba(160,32,255,.6)}
+.btn-ghost{padding:8px 16px;background:transparent;border:1px solid var(--b2);border-radius:7px;color:var(--t2);font-size:13px;cursor:pointer}
+.btn-ghost:hover{border-color:var(--text);color:var(--text)}
+
+/* ══ ALERTS LIST ════════════════════════════════════════ */
+.al-main-tab{flex:1;padding:11px;text-align:center;font-size:14px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;transition:.12s;background:var(--bg3)}
+.al-main-tab.on{color:var(--text);border-bottom-color:var(--green);background:var(--bg2)}
+.al-sub-tab{padding:7px 14px;font-size:13px;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;transition:.12s}
+.al-sub-tab.on{color:var(--text);border-bottom-color:var(--purple)}
+.al-list-wrap{flex:1;overflow-y:auto;padding:20px;min-height:240px}
+.al-list-wrap::-webkit-scrollbar{width:4px}
+.al-list-wrap::-webkit-scrollbar-thumb{background:var(--b2)}
+.al-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:220px;gap:16px}
+.al-empty-txt{font-size:14px;color:var(--t2)}
+.al-create-btn{display:flex;align-items:center;gap:8px;padding:11px 24px;background:var(--green);border:none;border-radius:8px;color:#000;font-size:14px;font-weight:800;cursor:pointer;transition:.15s;box-shadow:0 0 16px rgba(0,255,225,.4)}
+.al-create-btn:hover{box-shadow:0 0 24px rgba(0,255,225,.6);transform:translateY(-1px)}
+.al-item{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--bg3);border-radius:9px;border:1px solid var(--border);margin-bottom:7px}
+.al-item-sym{font-weight:700;color:#fff;font-size:14px;min-width:54px}
+.al-item-cond{font-size:13px;color:var(--t2);flex:1}
+.al-item-val{font-size:13px;font-weight:600;color:var(--text);min-width:70px;text-align:right}
+.al-item-badge{font-size:11px;padding:2px 7px;border-radius:4px}
+.al-item-badge.active{background:var(--gbg);color:var(--green);border:1px solid var(--gb)}
+.al-item-badge.fired{background:rgba(160,32,255,.12);color:var(--pl);border:1px solid rgba(160,32,255,.3)}
+.al-del{color:var(--t3);cursor:pointer;font-size:15px;padding:3px 5px;border-radius:5px;line-height:1;background:transparent;border:none}
+.al-del:hover{color:var(--red);background:var(--rbg)}
+
+/* ══ WIZARD ══════════════════════════════════════════════ */
+.wz-stepper{display:flex;align-items:center;padding:16px 24px;border-bottom:1px solid var(--border);background:var(--bg3);flex-shrink:0}
+.wz-step{display:flex;align-items:center;gap:10px;cursor:pointer;opacity:.5;transition:.15s;white-space:nowrap}
+.wz-step.active,.wz-step.done{opacity:1}
+.wz-step-icon{width:30px;height:30px;border-radius:50%;border:2px solid var(--b2);display:flex;align-items:center;justify-content:center;font-size:14px;background:var(--bg4);flex-shrink:0;transition:.2s}
+.wz-step.active .wz-step-icon{border-color:var(--purple);background:rgba(160,32,255,.15);box-shadow:0 0 10px rgba(160,32,255,.3)}
+.wz-step.done .wz-step-icon{border-color:var(--green);background:var(--green);color:#000;font-size:14px}
+.wz-step-label{font-size:13px;font-weight:600;color:var(--text)}
+.wz-line{flex:1;height:1px;background:var(--b2);margin:0 12px;transition:.3s}
+.wz-line.done{background:var(--green)}
+.wz-page{overflow-y:auto}
+.wz-page::-webkit-scrollbar{width:4px}
+.wz-page::-webkit-scrollbar-thumb{background:var(--b2)}
+.wz-section-title{font-size:14px;color:var(--t2);margin-bottom:16px}
+.wz-type-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.wz-type-card{padding:18px 20px;background:var(--bg3);border:2px solid var(--border);border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:500;color:var(--t2);transition:.15s}
+.wz-type-card:hover{border-color:var(--b2);color:var(--text)}
+.wz-type-card.on{border-color:var(--purple);color:#fff;background:rgba(160,32,255,.08);box-shadow:0 0 14px rgba(160,32,255,.2)}
+.wz-help{width:18px;height:18px;border-radius:50%;border:1px solid var(--b2);color:var(--t2);font-size:12px;display:inline-flex;align-items:center;justify-content:center;cursor:help;flex-shrink:0;margin-left:4px}
+.wz-field-label{font-size:13px;color:var(--t2);margin-bottom:6px;font-weight:500}
+.wz-input{width:100%;background:var(--bg3);border:1px solid var(--b2);border-radius:7px;color:var(--text);padding:8px 12px;font-size:13px;outline:none;transition:.15s;font-family:'JetBrains Mono',monospace}
+.wz-input:focus{border-color:var(--purple)}
+.wz-input::placeholder{color:var(--t3)}
+select.wz-input option{background:var(--bg3)}
+.wz-checkbox-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);cursor:pointer;padding:3px 0}
+.wz-cb{accent-color:var(--purple);width:14px;height:14px;cursor:pointer;flex-shrink:0}
+.wz-icon-btn{width:28px;height:28px;background:var(--bg4);border:1px solid var(--b2);border-radius:6px;color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:.12s}
+.wz-icon-btn:hover{border-color:var(--pl);color:var(--text)}
+.wz-footer{display:flex;align-items:center;padding:12px 20px;border-top:1px solid var(--border);background:var(--bg3);flex-shrink:0;gap:10px}
+.wz-btn-back{padding:8px 18px;background:var(--bg4);border:1px solid var(--b2);border-radius:7px;color:var(--text);font-size:13px;font-weight:600;cursor:pointer}
+.wz-btn-back:hover{border-color:var(--pl)}
+.wz-btn-next{padding:8px 18px;background:var(--bg4);border:1px solid var(--b2);border-radius:7px;color:var(--t2);font-size:13px;font-weight:600;transition:.15s;cursor:not-allowed}
+.wz-btn-next.enabled{background:var(--purple);border-color:var(--purple);color:#fff;cursor:pointer;box-shadow:0 0 14px rgba(160,32,255,.4)}
+.wz-btn-next.enabled:hover{box-shadow:0 0 20px rgba(160,32,255,.6)}
+.wz-btn-save{padding:8px 20px;background:var(--green);border:none;border-radius:7px;color:#000;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 0 14px rgba(0,255,225,.4)}
+.wz-btn-save:hover{box-shadow:0 0 20px rgba(0,255,225,.6)}
+.wz-sym-item{padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(42,21,80,.4);transition:background .1s}
+.wz-sym-item:hover,.wz-sym-item.active{background:rgba(160,32,255,.1)}
+.wz-sym-name{font-weight:700;color:#fff;font-size:14px;min-width:60px}
+.wz-sym-ex{font-size:12px;color:var(--t2);flex:1}
+.wz-sym-price{font-size:13px;color:var(--text)}
+.tg-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.tg-lbl{font-size:12px;color:var(--t2);min-width:60px}
+.tg-in{flex:1;background:var(--bg4);border:1px solid var(--b2);border-radius:5px;color:var(--text);padding:5px 8px;font-size:13px;outline:none;font-family:'JetBrains Mono',monospace}
+.tg-in:focus{border-color:var(--purple)}
+.tg-in::placeholder{color:var(--t3)}
+
+/* ══ COMPLEX ALERT ══════════════════════════════════════ */
+.cx-scope-btn{padding:10px;text-align:center;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;transition:.12s;background:var(--bg3)}
+.cx-scope-btn.on{background:var(--bg4);color:#fff;border-right:1px solid var(--border)}
+.cx-scope-btn:last-child{border-right:none}
+.cx-scope-btn:first-child{border-right:1px solid var(--border)}
+.cx-section-title{font-size:13px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.cx-param-row{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.cx-param-label{font-size:12px;color:var(--t2);display:flex;align-items:center;gap:4px}
+.cx-inp{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text);padding:5px 8px;font-size:13px;outline:none;transition:.15s;font-family:'JetBrains Mono',monospace}
+.cx-inp:focus{border-color:var(--purple)}
+.cx-inp::placeholder{color:var(--t3)}
+.cx-sel{background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--t2);padding:4px 6px;font-size:12px;outline:none;flex-shrink:0}
+.cx-sel option{background:var(--bg3)}
+.cx-hint{width:14px;height:14px;border-radius:50%;border:1px solid var(--t3);color:var(--t3);font-size:11px;display:inline-flex;align-items:center;justify-content:center;cursor:help;flex-shrink:0}
+.cx-tag{display:flex;align-items:center;gap:4px;padding:2px 8px;background:var(--bg4);border:1px solid var(--b2);border-radius:4px;font-size:13px;color:var(--text)}
+.cx-tag-del{cursor:pointer;color:var(--t3);font-size:13px}
+.cx-tag-del:hover{color:var(--red)}
+/* ── ЭКРАН ПАРОЛЯ ─────────────────────────────────────────── */
+#pw-gate{position:fixed;inset:0;background:#0a0a14;display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:16px}
+#pw-gate input{background:#1a1a2e;border:1px solid #3a3a5e;color:#e0e0ff;padding:12px 16px;border-radius:8px;font-size:16px;width:260px;text-align:center;letter-spacing:2px}
+#pw-gate input:focus{outline:none;border-color:#7c5cff}
+#pw-gate button{background:#7c5cff;color:#fff;border:none;padding:12px 24px;border-radius:8px;font-size:15px;cursor:pointer;font-weight:600}
+#pw-gate button:hover{background:#9070ff}
+#pw-gate .pw-err{color:#ff5c7c;font-size:13px;min-height:18px}
+#pw-gate .pw-title{color:#7c5cff;font-size:20px;font-weight:700;letter-spacing:1px}
+.app{display:none}
+</style>
+</head>
+<body>
+<div id="pw-gate">
+  <div class="pw-title">CRYPTO SCAN</div>
+  <input type="password" id="pw-input" placeholder="Пароль" autocomplete="off">
+  <button onclick="checkPwGate()">Войти</button>
+  <div class="pw-err" id="pw-err"></div>
+</div>
+<script>
+// Простая защита от случайных посетителей, не от целенаправленного взлома —
+// раз страница публикуется через GitHub Pages (бесплатный тариф требует публичный
+// репозиторий), исходный код в любом случае виден всем, включая этот хэш.
+// Это сделано осознанно: цель — отсечь случайных людей, а не выдержать атаку.
+const PW_HASH='5a0b3bac355049820ccdd693493e6fafb2c6a315d740f0f83c78089ae3c33ac4';
+// init() определена в основном <script> блоке ниже в файле, который выполняется
+// ПОСЛЕ этого скрипта — поэтому здесь только готовим флаг window.csReadyToInit,
+// а сам вызов init() происходит в конце основного блока, когда функция уже точно
+// определена. Это избегает ошибки "init is not defined" при раннем вызове.
+window.csReadyToInit=false;
+async function sha256Hex(text){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function checkPwGate(){
+  const val=document.getElementById('pw-input').value;
+  const hash=await sha256Hex(val);
+  if(hash===PW_HASH){
+    sessionStorage.setItem('cs_pw_ok','1');
+    document.getElementById('pw-gate').style.display='none';
+    document.querySelector('.app').style.display='';
+    if(typeof init==='function') init(); else window.csReadyToInit=true;
+  } else {
+    document.getElementById('pw-err').textContent='Неверный пароль';
+  }
+}
+document.getElementById('pw-input').addEventListener('keydown',e=>{
+  if(e.key==='Enter') checkPwGate();
+});
+// Если пароль уже подтверждён в этой сессии браузера — не спрашивать заново.
+// init() ещё не определена на этом этапе (она в скрипте ниже), поэтому просто
+// выставляем флаг — конец основного скрипта проверит его и вызовет init() сам.
+if(sessionStorage.getItem('cs_pw_ok')==='1'){
+  document.getElementById('pw-gate').style.display='none';
+  document.querySelector('.app').style.display='';
+  window.csReadyToInit=true;
+}
+</script>
+<div class="app">
+
+<!-- ══ TOPBAR ════════════════════════════════════════════ -->
+<div class="topbar">
+  <div class="tb-logo"><div class="logo-text">CRYPTO<br><span>SCAN</span></div></div>
+
+  <div class="tb-exchanges">
+    <button class="exch-btn on" onclick="setEx('binance',this)">Binance</button>
+    <button class="exch-btn" onclick="setEx('bybit',this)">ByBit</button>
+    <button class="exch-btn" onclick="setEx('okx',this)">OKX</button>
+    <button class="exch-btn" onclick="setEx('mexc',this)" title="MEXC работает через сторонний CORS-прокси (allorigins.win) — может быть медленнее или временно недоступен">MEXC</button>
+  </div>
+
+  <!-- Только Фьючерсы -->
+  <div class="tb-section" style="padding:0 12px;border-right:1px solid var(--border)">
+    <span style="font-size:11px;font-weight:600;color:#fff">Фьючерсы</span>
+  </div>
+
+  <!-- Сортировка карты рынка: Рендж 5м / Рендж 1ч / Объём в $ -->
+  <div class="tb-range" id="range-dropdown-wrap">
+    <div class="range-trigger" onclick="toggleRangeDropdown()">
+      <span class="range-label" id="range-label-text">Рендж за</span>
+      <span class="range-val" id="range-val">5м</span>
+      <svg class="range-gear" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="1.8" stroke="currentColor" stroke-width="1.2"/><path d="M7 2v1.3M7 10.7V12M2 7h1.3M10.7 7H12M3.5 3.5l.9.9M9.6 9.6l.9.9M3.5 10.5l.9-.9M9.6 4.4l.9-.9" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+      <div class="rdot"></div>
+    </div>
+    <div class="range-menu" id="range-menu"></div>
+  </div>
+
+  <!-- TF -->
+  <div class="tb-section">
+    <button class="tf-btn on" onclick="setTf('1m',this)">1м</button>
+    <button class="tf-btn" onclick="setTf('3m',this)">3м</button>
+    <button class="tf-btn" onclick="setTf('5m',this)">5м</button>
+    <button class="tf-btn" onclick="setTf('15m',this)">15м</button>
+    <button class="tf-btn" onclick="setTf('30m',this)">30м</button>
+    <button class="tf-btn" onclick="setTf('1h',this)">1ч</button>
+    <button class="tf-btn" onclick="setTf('4h',this)">4ч</button>
+    <button class="tf-btn" onclick="setTf('1d',this)">1д</button>
+  </div>
+
+  <!-- Кол-во ячеек -->
+  <div class="tb-section">
+    <button class="col-btn" onclick="setCols(3,this)">3</button>
+    <button class="col-btn" onclick="setCols(4,this)">4</button>
+    <button class="col-btn" onclick="setCols(6,this)">6</button>
+    <button class="col-btn" onclick="setCols(9,this)">9</button>
+    <button class="col-btn" onclick="setCols(12,this)">12</button>
+    <button class="col-btn on" onclick="setCols(16,this)">16</button>
+    <button class="col-btn" onclick="setCols(25,this)">25</button>
+    <button class="col-btn" onclick="setCols(50,this)">50</button>
+  </div>
+
+  <!-- Правые кнопки -->
+  <div class="tb-right">
+    <div class="stdot" id="stdot"></div>
+    <!-- Поиск -->
+    <div class="tb-icon" id="btn-search" onclick="openSearchModal()" title="Поиск монеты">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.4"/><line x1="9.5" y1="9.5" x2="13" y2="13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+    </div>
+    <!-- Алерты -->
+    <div class="tb-icon" id="btn-alerts" onclick="openAlertsModal()" title="Алерты">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5C4.5 1.5 3 3.5 3 6v3l-1 1.5h10L11 9V6c0-2.5-1.5-4-4-4.5z" stroke="currentColor" stroke-width="1.3"/><path d="M5.5 12c0 .8.7 1.5 1.5 1.5s1.5-.7 1.5-1.5" stroke="currentColor" stroke-width="1.3"/></svg>
+    </div>
+    <!-- Фильтры -->
+    <div class="tb-icon" id="btn-filter" onclick="openFilterModal()" title="Фильтры">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1.5 3h11M3.5 7h7M5.5 11h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+    </div>
+    <!-- Топ рост/падение -->
+    <div class="tb-icon live-btn" title="Live" style="font-size:10px;font-weight:700">LIVE</div>
+  </div>
+</div>
+
+<!-- ══ GRID ═══════════════════════════════════════════════ -->
+<div class="grid-area" id="grid-area"></div>
+
+<!-- ══ CHART MODAL ════════════════════════════════════════ -->
+<div class="modal-bg" id="chart-modal" onclick="if(event.target===this)closeChartModal()">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-title" id="chart-modal-title">График</span>
+      <div class="chart-modal-tf" id="chart-modal-tf">
+        <button class="tf-btn on" onclick="changeChartTf('1m',this)">1м</button>
+        <button class="tf-btn" onclick="changeChartTf('5m',this)">5м</button>
+        <button class="tf-btn" onclick="changeChartTf('15m',this)">15м</button>
+        <button class="tf-btn" onclick="changeChartTf('30m',this)">30м</button>
+        <button class="tf-btn" onclick="changeChartTf('1h',this)">1ч</button>
+        <button class="tf-btn" onclick="changeChartTf('4h',this)">4ч</button>
+        <button class="tf-btn" onclick="changeChartTf('1d',this)">1д</button>
+      </div>
+      <span class="modal-x" onclick="closeChartModal()">✕</span>
+    </div>
+    <iframe class="chart-modal-frame" id="chart-modal-frame" src="" frameborder="0" allowtransparency="true"></iframe>
+  </div>
+</div>
+
+<!-- ══ SEARCH MODAL ════════════════════════════════════════ -->
+<div class="modal-bg" id="search-modal" onclick="if(event.target===this)closeSearchModal()">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-title">Поиск монеты</span>
+      <span class="modal-x" onclick="closeSearchModal()">✕</span>
+    </div>
+    <div class="search-wrap">
+      <input class="search-input" id="search-input" placeholder="Введите символ монеты: BTC, ETH, SOL..." autocomplete="off" oninput="onSearchInput()" onkeydown="onSearchKey(event)">
+    </div>
+    <div class="search-results" id="search-results">
+      <div class="search-empty">Начните вводить название монеты</div>
+    </div>
+    <div class="search-hint">
+      <span><span class="hint-key">↑↓</span> навигация</span>
+      <span><span class="hint-key">Enter</span> открыть график</span>
+      <span><span class="hint-key">Esc</span> закрыть</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ALERTS MODAL ════════════════════════════════════════ -->
+<div class="modal-bg" id="alerts-modal" onclick="if(event.target===this)closeAlertsModal()">
+  <div class="modal-box" style="width:900px;max-width:96vw;height:600px">
+    <div class="modal-head">
+      <span class="modal-title">Алерты</span>
+      <div style="display:flex;align-items:center;gap:6px;margin-left:auto;margin-right:12px">
+        <!-- Telegram статус -->
+        <span id="tgok" style="font-size:10px;color:var(--green);display:none">✓ TG</span>
+        <button class="wz-icon-btn" onclick="openTgSettings()" title="Telegram настройки">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 3.5L13 1l-4 12-3-4.5L1 3.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="wz-icon-btn" onclick="openCreateAlert()" title="Создать алерт" style="background:var(--blue);border-color:var(--blue);color:#fff;width:26px;height:26px;font-size:16px;font-weight:300">⊕</button>
+      </div>
+      <span class="modal-x" onclick="closeAlertsModal()">✕</span>
+    </div>
+
+    <!-- Вкладки В работе / Отработанные -->
+    <div style="display:flex;border-bottom:1px solid var(--border)">
+      <div class="al-main-tab on" id="amt-active" onclick="switchAlTab('active')">В работе</div>
+      <div class="al-main-tab" id="amt-fired" onclick="switchAlTab('fired')">Отработанные</div>
+    </div>
+    <!-- Подвкладки -->
+    <div style="display:flex;border-bottom:1px solid var(--border);padding:0 16px;background:var(--bg3)">
+      <div class="al-sub-tab on" id="ast-all" onclick="switchAlSubTab('all')">Все</div>
+      <div class="al-sub-tab" id="ast-price" onclick="switchAlSubTab('price')">Пересечение цены</div>
+    </div>
+    <!-- Список -->
+    <div class="al-list-wrap" id="al-list-wrap"></div>
+  </div>
+</div>
+
+<!-- ══ CREATE ALERT WIZARD ════════════════════════════════ -->
+<div class="modal-bg" id="create-alert-modal" onclick="if(event.target===this)closeCreateAlert()">
+  <div class="modal-box" style="width:860px;max-width:96vw;min-height:340px">
+    <!-- Wizard header -->
+    <div class="modal-head" style="padding:14px 20px">
+      <span class="modal-title" style="font-size:14px">Создать алерт</span>
+      <span class="modal-x" onclick="closeCreateAlert()">✕</span>
+    </div>
+    <!-- Stepper -->
+    <div class="wz-stepper" id="wz-stepper">
+      <div class="wz-step active" id="ws-1" onclick="goWzStep(1)">
+        <div class="wz-step-icon" id="wsi-1">🔔</div>
+        <span class="wz-step-label">Тип алерта</span>
+      </div>
+      <div class="wz-line" id="wl-1"></div>
+      <div class="wz-step" id="ws-2" onclick="goWzStep(2)">
+        <div class="wz-step-icon" id="wsi-2">🔔</div>
+        <span class="wz-step-label">Биржи и отправка</span>
+      </div>
+      <div class="wz-line" id="wl-2"></div>
+      <div class="wz-step" id="ws-3" onclick="goWzStep(3)">
+        <div class="wz-step-icon" id="wsi-3">📊</div>
+        <span class="wz-step-label">Параметры алерта</span>
+      </div>
+    </div>
+
+    <!-- Step 1: Тип алерта -->
+    <div class="wz-page" id="wz-page-1">
+      <div class="wz-section-title">Тип алерта</div>
+      <div class="wz-type-grid">
+        <div class="wz-type-card on" id="wt-price" onclick="selectAlertType('price')">
+          <span>Пересечение цены</span>
+          <span class="wz-help" title="Срабатывает когда цена достигает заданного уровня">?</span>
+        </div>
+        <div class="wz-type-card" id="wt-complex" onclick="selectAlertType('complex')">
+          <span>Комплексный</span>
+          <span class="wz-help" title="Срабатывает по нескольким условиям одновременно">?</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Биржи и отправка -->
+    <div class="wz-page" id="wz-page-2" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;height:100%">
+        <!-- Левая колонка -->
+        <div style="padding:20px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:14px">
+          <div>
+            <div class="wz-field-label">Название</div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <input class="wz-input" id="wz-name" placeholder="Введите название" style="flex:1">
+              <button class="wz-icon-btn" title="Произнести">▶</button>
+            </div>
+          </div>
+          <div>
+            <div class="wz-field-label">Биржа и рынок</div>
+            <select class="wz-input" id="wz-exchange" style="margin-bottom:6px">
+              <option value="">Выберите биржу</option>
+              <option value="binance">Binance</option>
+              <option value="bybit">ByBit</option>
+              <option value="okx">OKX</option>
+            </select>
+            <select class="wz-input" id="wz-market">
+              <option value="futures">Фьючерсы</option>
+            </select>
+          </div>
+          <div>
+            <div class="wz-field-label">Всплывающий алерт</div>
+            <label class="wz-checkbox-row">
+              <input type="checkbox" id="wz-highlight" class="wz-cb">
+              <span>Подсвечивать алерт</span>
+              <span class="wz-help" title="Монета будет выделена в сетке при срабатывании">?</span>
+            </label>
+          </div>
+        </div>
+        <!-- Правая колонка -->
+        <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
+          <div>
+            <div class="wz-field-label">Произношение</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <label class="wz-checkbox-row"><input type="radio" name="wz-speech" value="name" class="wz-cb" checked><span>Произносить только название алерта</span></label>
+              <label class="wz-checkbox-row"><input type="radio" name="wz-speech" value="sym" class="wz-cb"><span>▶ Произносить название инструмента</span></label>
+              <label class="wz-checkbox-row"><input type="radio" name="wz-speech" value="sound" class="wz-cb"><span>▶ Звук вместо произношения</span></label>
+            </div>
+            <select class="wz-input" style="margin-top:6px" disabled><option>Выберите звук</option></select>
+            <label class="wz-checkbox-row" style="margin-top:6px"><input type="checkbox" class="wz-cb"><span>Произносить направление</span><span class="wz-help" title="Добавит 'вверх' или 'вниз' к произношению">?</span></label>
+          </div>
+          <div>
+            <div class="wz-field-label">Отправка</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <label class="wz-checkbox-row"><input type="checkbox" id="wz-send-browser" class="wz-cb" checked><span>Отправить алерт в браузер</span></label>
+              <label class="wz-checkbox-row"><input type="checkbox" id="wz-send-tg" class="wz-cb"><span>Отправить алерт в Telegram</span></label>
+              <label class="wz-checkbox-row"><input type="checkbox" id="wz-send-both" class="wz-cb"><span>Отправить алерт в Telegram и браузер</span></label>
+            </div>
+          </div>
+          <div>
+            <div class="wz-field-label">Режим алерта</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <label class="wz-checkbox-row"><input type="radio" name="wz-mode" value="once" class="wz-cb" checked><span>Одноразовый алерт</span><span class="wz-help" title="Срабатывает один раз и деактивируется">?</span></label>
+              <label class="wz-checkbox-row"><input type="radio" name="wz-mode" value="infinite" class="wz-cb"><span>Бесконечный алерт</span><span class="wz-help" title="Повторяется каждый раз при срабатывании">?</span></label>
+            </div>
+            <div class="wz-field-label" style="margin-top:8px">Повторять через: <span class="wz-help" title="Минимальный интервал между повторами">?</span></div>
+            <input class="wz-input" id="wz-repeat" placeholder="Укажите время в минутах" type="number" min="1" style="width:200px">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Параметры алерта (динамически меняется под тип) -->
+    <div class="wz-page" id="wz-page-3" style="display:none;padding:0;overflow:hidden">
+      <!-- Price alert params -->
+      <div id="wz-price-params" style="padding:24px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;height:100%">
+        <div>
+          <div class="wz-field-label" style="font-size:13px;margin-bottom:8px">Инструмент и цена</div>
+          <div class="wz-field-label">Выберите инструмент</div>
+          <div style="position:relative">
+            <input class="wz-input" id="wz-sym" placeholder="Начните вводить: BTC, ETH, SOL..." oninput="onWzSymInput()" onkeydown="onWzSymKey(event)" autocomplete="off" style="max-width:500px">
+            <div id="wz-sym-dropdown" style="display:none;position:absolute;top:100%;left:0;background:var(--bg2);border:1px solid var(--b2);border-radius:8px;z-index:200;width:400px;max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.5)"></div>
+          </div>
+        </div>
+        <div>
+          <div class="wz-field-label">Условие</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select class="wz-input" id="wz-cond" style="width:220px" onchange="onWzCondChange()">
+              <option value="above">Цена поднимется выше</option>
+              <option value="below">Цена опустится ниже</option>
+              <option value="pump">Рост % за свечу ≥</option>
+              <option value="dump">Падение % за свечу ≥</option>
+              <option value="vol">Объём $ за свечу ≥</option>
+            </select>
+            <input class="wz-input" id="wz-price" placeholder="Значение" type="number" min="0" step="any" style="width:160px" oninput="checkWzSaveReady()">
+            <span id="wz-price-unit" style="font-size:11px;color:var(--t2)">$</span>
+          </div>
+          <div id="wz-current-price" style="font-size:11px;color:var(--t2);margin-top:6px"></div>
+        </div>
+      </div>
+
+      <!-- Complex alert params -->
+      <div id="wz-complex-params" style="display:none;height:100%;overflow-y:auto">
+        <!-- Алерт для -->
+        <div style="padding:14px 20px;border-bottom:1px solid var(--border)">
+          <div class="wz-field-label" style="margin-bottom:8px">Алерт для</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+            <div class="cx-scope-btn on" id="cxs-all" onclick="setCxScope('all')">Всех монет</div>
+            <div class="cx-scope-btn" id="cxs-one" onclick="setCxScope('one')">Одной или нескольких монет</div>
+          </div>
+          <!-- Поле монеты (при выборе "одной") -->
+          <div id="cx-sym-wrap" style="display:none;margin-top:10px;position:relative">
+            <div class="wz-field-label">Черный список</div>
+            <input class="wz-input" id="cx-sym" placeholder="Начните вводить название инструмента" oninput="onCxSymInput()" style="margin-bottom:6px">
+            <div id="cx-sym-dropdown" style="display:none;position:absolute;top:100%;left:0;background:var(--bg2);border:1px solid var(--b2);border-radius:8px;z-index:200;width:380px;max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.5)"></div>
+            <div id="cx-sym-tags" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px"></div>
+          </div>
+        </div>
+
+        <!-- Параметры сетка 3 колонки -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border)">
+
+          <!-- Колонка 1: Последняя 1м свеча + Рэндж -->
+          <div style="background:var(--bg2);padding:14px 16px;display:flex;flex-direction:column;gap:14px">
+            <!-- Последняя 1м свеча -->
+            <div>
+              <div class="cx-section-title">Последняя 1м свеча</div>
+              <div class="cx-param-row">
+                <span class="cx-param-label">Движение 1м (%)</span>
+                <div style="display:flex;gap:4px;align-items:center">
+                  <input class="cx-inp" id="cx-move1m" placeholder="От" type="number" step="any">
+                  <select class="cx-sel" id="cx-move1m-dir"><option value="any">Любое</option><option value="up">Вверх</option><option value="down">Вниз</option></select>
+                </div>
+              </div>
+              <div class="cx-param-row">
+                <span class="cx-param-label">Объём 1м ($) <span class="cx-hint" title="Volume in Currency из TradingView — объём свечи в USD">ⓘ</span></span>
+                <input class="cx-inp" id="cx-vol1m-usd" placeholder="От" type="number" step="any">
+              </div>
+              <div class="cx-param-row">
+                <span class="cx-param-label">Рост объёма 1м (%) <span class="cx-hint" title="Если объём текущей свечи вырос на N% по сравнению со средним за 20 свечей">ⓘ</span></span>
+                <div style="display:flex;gap:4px;align-items:center">
+                  <input class="cx-inp" id="cx-vol1m-grow" placeholder="От" type="number" step="any">
+                  <select class="cx-sel" id="cx-vol1m-grow-dir"><option value="any">Любое</option><option value="up">Рост ↑</option><option value="down">Падение ↓</option></select>
+                </div>
+              </div>
+              <div class="cx-param-row">
+                <span class="cx-param-label">Сделки 1м</span>
+                <input class="cx-inp" id="cx-trades1m" placeholder="От" type="number">
+              </div>
+            </div>
+
+            <!-- Рэндж (%) -->
+            <div>
+              <div class="cx-section-title">Рэндж (%)</div>
+              <div class="cx-param-row"><span class="cx-param-label">5 минут</span><div style="display:flex;gap:4px"><input class="cx-inp" id="cx-natr-5m" placeholder="От" type="number" step="any"><select class="cx-sel" id="cx-natr-5m-dir"><option value="any">Любое</option><option value="up">↑</option><option value="down">↓</option></select></div></div>
+              <div class="cx-param-row"><span class="cx-param-label">15 минут</span><div style="display:flex;gap:4px"><input class="cx-inp" id="cx-natr-15m" placeholder="От" type="number" step="any"><select class="cx-sel" id="cx-natr-15m-dir"><option value="any">Любое</option><option value="up">↑</option><option value="down">↓</option></select></div></div>
+              <div class="cx-param-row"><span class="cx-param-label">30 минут</span><div style="display:flex;gap:4px"><input class="cx-inp" id="cx-natr-30m" placeholder="От" type="number" step="any"><select class="cx-sel" id="cx-natr-30m-dir"><option value="any">Любое</option><option value="up">↑</option><option value="down">↓</option></select></div></div>
+              <div class="cx-param-row"><span class="cx-param-label">1 час</span><div style="display:flex;gap:4px"><input class="cx-inp" id="cx-natr-1h" placeholder="От" type="number" step="any"><select class="cx-sel" id="cx-natr-1h-dir"><option value="any">Любое</option><option value="up">↑</option><option value="down">↓</option></select></div></div>
+            </div>
+          </div>
+
+          <!-- Колонка 2: Объём ($) по таймфреймам -->
+          <div style="background:var(--bg2);padding:14px 16px;display:flex;flex-direction:column;gap:14px">
+            <div>
+              <div class="cx-section-title">Объём $ <span style="font-size:9px;color:var(--t3)">(Volume in Currency)</span></div>
+              <div class="cx-param-row"><span class="cx-param-label">5 минут</span><input class="cx-inp" id="cx-vol-5m" placeholder="От" type="number"></div>
+              <div class="cx-param-row"><span class="cx-param-label">15 минут</span><input class="cx-inp" id="cx-vol-15m" placeholder="От" type="number"></div>
+              <div class="cx-param-row"><span class="cx-param-label">30 минут</span><input class="cx-inp" id="cx-vol-30m" placeholder="От" type="number"></div>
+              <div class="cx-param-row"><span class="cx-param-label">1 час</span><input class="cx-inp" id="cx-vol-1h" placeholder="От" type="number"></div>
+              <div class="cx-param-row"><span class="cx-param-label">4 часа</span><input class="cx-inp" id="cx-vol-4h" placeholder="От" type="number"></div>
+              <div class="cx-param-row"><span class="cx-param-label">1 день</span><input class="cx-inp" id="cx-vol-1d" placeholder="От" type="number"></div>
+            </div>
+          </div>
+
+          <!-- Колонка 3: Сделки по таймфреймам -->
+          <div style="background:var(--bg2);padding:14px 16px;display:flex;flex-direction:column;gap:14px">
+            <div>
+              <div class="cx-section-title">Сделки</div>
+              <div class="cx-param-row"><span class="cx-param-label">5 минут</span><input class="cx-inp" id="cx-trades-5m" placeholder="От" type="number"></div>
+              <div class="cx-param-row"><span class="cx-param-label">15 минут</span><input class="cx-inp" id="cx-trades-15m" placeholder="От" type="number"></div>
+              <div class="cx-param-row"><span class="cx-param-label">30 минут</span><input class="cx-inp" id="cx-trades-30m" placeholder="От" type="number"></div>
+              <div class="cx-param-row"><span class="cx-param-label">1 час</span><input class="cx-inp" id="cx-trades-1h" placeholder="От" type="number"></div>
+              <div class="cx-param-row"><span class="cx-param-label">4 часа</span><input class="cx-inp" id="cx-trades-4h" placeholder="От" type="number"></div>
+              <div class="cx-param-row"><span class="cx-param-label">1 день</span><input class="cx-inp" id="cx-trades-1d" placeholder="От" type="number"></div>
+            </div>
+          </div>
+
+        </div><!-- end grid -->
+      </div><!-- end complex params -->
+    </div>
+
+    <!-- Кнопки навигации -->
+    <div class="wz-footer">
+      <button class="wz-btn-back" id="wz-back-btn" onclick="wzBack()" style="display:none">Назад</button>
+      <div style="flex:1"></div>
+      <button class="wz-btn-next" id="wz-next-btn" onclick="wzNext()" disabled>Далее</button>
+      <button class="wz-btn-save" id="wz-save-btn" onclick="wzSave()" style="display:none">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TG SETTINGS MODAL ══════════════════════════════════ -->
+<div class="modal-bg" id="tg-modal" onclick="if(event.target===this)closeTgSettings()">
+  <div class="modal-box" style="width:420px">
+    <div class="modal-head">
+      <span class="modal-title">Telegram уведомления</span>
+      <span class="modal-x" onclick="closeTgSettings()">✕</span>
+    </div>
+    <div style="padding:20px;display:flex;flex-direction:column;gap:12px">
+      <p style="font-size:11px;color:var(--t2);line-height:1.6">Введи токен своего бота и Chat ID чтобы алерты приходили в Telegram. Бота создать через @BotFather, Chat ID узнать через @userinfobot.</p>
+      <div class="tg-row">
+        <span class="tg-lbl">Bot token</span>
+        <input class="tg-in" id="tgtok" type="password" placeholder="1234567:AAxx..." oninput="autoSaveTg()">
+      </div>
+      <div class="tg-row">
+        <span class="tg-lbl">Chat ID</span>
+        <input class="tg-in" id="tgcid" placeholder="123456789" oninput="autoSaveTg()">
+      </div>
+      <div id="tgok2" style="font-size:11px;color:var(--green);display:none">✓ Telegram подключён</div>
+      <button class="wz-btn-save" onclick="testTg()" style="width:fit-content">Проверить соединение</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ FILTER MODAL ════════════════════════════════════════ -->
+<div class="modal-bg" id="filter-modal" onclick="if(event.target===this)closeFilterModal()">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-title">Фильтры карты рынка</span>
+      <span class="modal-x" onclick="closeFilterModal()">✕</span>
+    </div>
+    <div class="filter-body">
+
+      <!-- Объём за 24ч -->
+      <div class="filter-section">
+        <div class="filter-section-title">Объём за 24ч (USD)</div>
+        <div class="filter-row">
+          <span class="filter-label">От</span>
+          <input class="filter-inp" id="f-vol-min" placeholder="например 1000000" type="number" min="0">
+          <span class="filter-unit">$</span>
+          <span class="filter-between">—</span>
+          <input class="filter-inp" id="f-vol-max" placeholder="без ограничения" type="number" min="0">
+          <span class="filter-unit">$</span>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn-ghost" style="padding:4px 10px;font-size:10px" onclick="setVolPreset(1e6,50e6)">$1M–$50M</button>
+          <button class="btn-ghost" style="padding:4px 10px;font-size:10px" onclick="setVolPreset(50e6,500e6)">$50M–$500M</button>
+          <button class="btn-ghost" style="padding:4px 10px;font-size:10px" onclick="setVolPreset(500e6,0)">$500M+</button>
+          <button class="btn-ghost" style="padding:4px 10px;font-size:10px" onclick="setVolPreset(0,0)">Сброс</button>
+        </div>
+      </div>
+
+      <div class="filter-divider"></div>
+
+      <!-- Среднее кол-во сделок -->
+      <div class="filter-section">
+        <div class="filter-section-title">Среднее количество сделок</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div class="filter-row">
+            <span class="filter-label" style="font-size:11px;color:var(--t2)">1м за 30м</span>
+            <input class="filter-inp" id="f-trades-1m-min" placeholder="От" type="number" min="0">
+            <span class="filter-between">—</span>
+            <input class="filter-inp" id="f-trades-1m-max" placeholder="До" type="number" min="0">
+            <span class="filter-unit">сделок</span>
+          </div>
+          <div class="filter-row">
+            <span class="filter-label" style="font-size:11px;color:var(--t2)">5м за 2ч</span>
+            <input class="filter-inp" id="f-trades-5m-min" placeholder="От" type="number" min="0">
+            <span class="filter-between">—</span>
+            <input class="filter-inp" id="f-trades-5m-max" placeholder="До" type="number" min="0">
+            <span class="filter-unit">сделок</span>
+          </div>
+          <div class="filter-row">
+            <span class="filter-label" style="font-size:11px;color:var(--t2)">15м за 6ч</span>
+            <input class="filter-inp" id="f-trades-15m-min" placeholder="От" type="number" min="0">
+            <span class="filter-between">—</span>
+            <input class="filter-inp" id="f-trades-15m-max" placeholder="До" type="number" min="0">
+            <span class="filter-unit">сделок</span>
+          </div>
+          <div class="filter-row">
+            <span class="filter-label" style="font-size:11px;color:var(--t2)">30м за 12ч</span>
+            <input class="filter-inp" id="f-trades-30m-min" placeholder="От" type="number" min="0">
+            <span class="filter-between">—</span>
+            <input class="filter-inp" id="f-trades-30m-max" placeholder="До" type="number" min="0">
+            <span class="filter-unit">сделок</span>
+          </div>
+          <div class="filter-row">
+            <span class="filter-label" style="font-size:11px;color:var(--t2)">1ч за 24ч</span>
+            <input class="filter-inp" id="f-trades-1h-min" placeholder="От" type="number" min="0">
+            <span class="filter-between">—</span>
+            <input class="filter-inp" id="f-trades-1h-max" placeholder="До" type="number" min="0">
+            <span class="filter-unit">сделок</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-divider"></div>
+
+      <!-- Изм% -->
+      <div class="filter-section">
+        <div class="filter-section-title">Изменение цены %</div>
+        <div class="filter-row">
+          <span class="filter-label">Мин. |изм%|</span>
+          <input class="filter-inp" id="f-chg-min" placeholder="напр. 2" type="number" min="0" step="0.1">
+          <span class="filter-unit">%</span>
+          <span class="filter-between">макс.</span>
+          <input class="filter-inp" id="f-chg-max" placeholder="без лимита" type="number" min="0" step="0.1">
+          <span class="filter-unit">%</span>
+        </div>
+      </div>
+
+    </div>
+    <div class="filter-actions">
+      <button class="btn-ghost" onclick="resetFilters()">Сбросить</button>
+      <button class="btn-primary" onclick="applyFilterModal()">Применить</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- .app -->
+
+<script>
+// ── STATE ──────────────────────────────────────────────────
+let coins={}, ex='binance', tf='1m', cols=16;
+let alerts=[], fireLog=[], cd={}, tgTok='', tgCid='';
+let refreshTimer=null, gridSyms=[], renderedSyms=[];
+let alertsTab='active';
+let searchIdx=-1;
+let chartModalSym='', chartModalTf='1m';
+let activeFilters={volMin:0,volMax:0,chgMin:0,chgMax:0,tradesFilters:{}};
+// sortMode определяет одновременно: период рендж-расчёта и способ сортировки сетки
+// 'range5' — Рендж за 5м, 'range1h' — Рендж за 1ч, 'burst' — Объём в $ (всплески объёма)
+let sortMode='range5';
+const SORT_MODES=[
+  {key:'range5',label:'Рендж за',val:'5м',rangeMin:5},
+  {key:'range1h',label:'Рендж за',val:'1ч',rangeMin:60},
+  {key:'burst',label:'Объём',val:'в $',rangeMin:5},
+  {key:'plateau',label:'Плато',val:'объёма',rangeMin:5},
+];
+const TV_TF={'1m':'1','3m':'3','5m':'5','15m':'15','30m':'30','1h':'60','4h':'240','1d':'D'};
+
+// ── INIT ───────────────────────────────────────────────────
+function saveSettings(){
+  localStorage.setItem('cs_settings',JSON.stringify({ex,tf,cols,sortMode,activeFilters,settingsVersion:3}));
+}
+function loadSettings(){
+  try{
+    const raw=localStorage.getItem('cs_settings');
+    const s=JSON.parse(raw||'{}');
+    // Версия 3 ввела единую модель sortMode — на старых версиях принудительно ставим дефолт
+    if(!s.settingsVersion||s.settingsVersion<3){
+      sortMode='range5';
+    } else if(s.sortMode){
+      sortMode=s.sortMode;
+    }
+    if(s.ex&&s.ex!=='gate') ex=s.ex; // 'gate' больше не поддерживается (CORS-блокировка биржи), откатываемся на дефолт
+    if(s.tf) tf=s.tf;
+    if(s.cols) cols=s.cols;
+    if(s.activeFilters) activeFilters=s.activeFilters;
+  }catch(e){}
+}
+function applySettingsToUI(){
+  // Биржа
+  document.querySelectorAll('.exch-btn').forEach(b=>{
+    b.classList.toggle('on',b.getAttribute('onclick')?.includes(`'${ex}'`));
+  });
+  // Таймфрейм
+  document.querySelectorAll('.tb-section .tf-btn').forEach(b=>{
+    b.classList.toggle('on',b.getAttribute('onclick')?.includes(`'${tf}'`));
+  });
+  // Колонки
+  document.querySelectorAll('.col-btn').forEach(b=>{
+    b.classList.toggle('on',b.getAttribute('onclick')===`setCols(${cols},this)`);
+  });
+  // Режим сортировки — обновляем текст в шапке dropdown
+  updateSortModeLabel();
+}
+function updateSortModeLabel(){
+  const m=SORT_MODES.find(x=>x.key===sortMode)||SORT_MODES[0];
+  document.getElementById('range-label-text').textContent=m.label;
+  document.getElementById('range-val').textContent=m.val;
+}
+
+function init(){
+  tgTok=localStorage.getItem('cs_tok')||'';
+  tgCid=localStorage.getItem('cs_cid')||'';
+  if(tgTok) document.getElementById('tgtok').value=tgTok;
+  if(tgCid) document.getElementById('tgcid').value=tgCid;
+  if(tgTok&&tgCid) document.getElementById('tgok').style.display='inline';
+  try{alerts=JSON.parse(localStorage.getItem('cs_alerts')||'[]');}catch(e){alerts=[];}
+
+  loadSettings();
+  applySettingsToUI();
+
+  // Устанавливаем layout сетки сразу
+  const colMap={3:3,4:4,6:3,9:3,12:4,16:4,25:5,50:10};
+  const numCols=colMap[cols]||Math.ceil(Math.sqrt(cols));
+  const numRows=Math.ceil(cols/numCols);
+  const area=document.getElementById('grid-area');
+  area.style.gridTemplateColumns=`repeat(${numCols},1fr)`;
+  area.style.gridTemplateRows=`repeat(${numRows},1fr)`;
+  // Запускаем загрузку данных — applyFilters вызовется после fetchData
+  startFetch();
+}
+function autoSaveTg(){
+  tgTok=document.getElementById('tgtok').value.trim();
+  tgCid=document.getElementById('tgcid').value.trim();
+  localStorage.setItem('cs_tok',tgTok);
+  localStorage.setItem('cs_cid',tgCid);
+  document.getElementById('tgok').style.display=(tgTok&&tgCid)?'inline':'none';
+}
+
+// ── CONTROLS ───────────────────────────────────────────────
+function setEx(e,el){
+  ex=e;
+  document.querySelectorAll('.exch-btn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  saveSettings();
+  coins={};klinesCache={};gridSyms=[];renderedSyms=[];
+  // Сразу очищаем сетку и показываем индикатор загрузки — иначе старые ячейки
+  // с прошлой биржи остаются на экране, пока новые данные не подгрузятся
+  document.getElementById('grid-area').innerHTML='<div class="grid-loading">Загрузка данных с биржи…</div>';
+  startFetch();
+}
+function setTf(t,el){
+  tf=t;
+  document.querySelectorAll('.tb-section .tf-btn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  saveSettings();
+  renderedSyms=[];applyFilters();
+}
+function setCols(n,el){
+  cols=n;
+  document.querySelectorAll('.col-btn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  saveSettings();
+  updateGridLayout();
+}
+function toggleRangeDropdown(){
+  const wrap=document.getElementById('range-dropdown-wrap');
+  const isOpen=wrap.classList.contains('open');
+  if(isOpen){closeRangeDropdown();return;}
+  // Заполняем меню всеми режимами сортировки карты рынка
+  const menu=document.getElementById('range-menu');
+  menu.innerHTML=SORT_MODES.map(m=>{
+    const text=m.key==='burst'?'Объём в $':m.key==='plateau'?'Плато объёма (низколикв.)':`Рендж за ${m.val}`;
+    return`<div class="range-item ${m.key===sortMode?'sel':''}" onclick="selectSortMode('${m.key}')">${text}</div>`;
+  }).join('');
+  wrap.classList.add('open');
+}
+function closeRangeDropdown(){
+  document.getElementById('range-dropdown-wrap').classList.remove('open');
+}
+function selectSortMode(key){
+  sortMode=key;
+  updateSortModeLabel();
+  closeRangeDropdown();
+  saveSettings();
+  // При переключении режима не нужно заново качать тикеры (цена/объём 24ч уже в памяти) —
+  // достаточно пересчитать рендж/всплеск по новому периоду на уже имеющихся данных.
+  // Это убирает лишний полный fetch-цикл и ускоряет переключение в разы.
+  switchSortModeFast();
+}
+let modeSwitchInProgress=false;
+async function switchSortModeFast(){
+  if(Object.keys(coins).length===0){
+    // Данных ещё нет (первая загрузка) — обычный полный цикл
+    fetchData();
+    return;
+  }
+  if(modeSwitchInProgress)return;
+  modeSwitchInProgress=true;
+  try{
+    if(sortMode==='burst'){
+      await checkVolumeBursts();
+    } else if(sortMode==='plateau'){
+      await checkPlateau();
+    } else {
+      await applyRangeToCoins();
+      Object.values(coins).forEach(c=>checkAlerts(c.symbol,c.price,c.change,c.volume));
+      applyFilters();
+    }
+  }finally{
+    modeSwitchInProgress=false;
+  }
+}
+document.addEventListener('click',e=>{
+  const wrap=document.getElementById('range-dropdown-wrap');
+  if(wrap&&!wrap.contains(e.target)) closeRangeDropdown();
+});
+function setSt(live){
+  document.getElementById('stdot').style.background=live?'var(--green)':'var(--red)';
+}
+
+// ── FETCH ──────────────────────────────────────────────────
+// Обёртка с таймаутом: если запрос зависает дольше указанного времени, отменяем его,
+// чтобы один медленный/мёртвый запрос не тормозил весь цикл обновления данных
+async function fetchWithTimeout(url,ms){
+  const ctrl=new AbortController();
+  const timer=setTimeout(()=>ctrl.abort(),ms);
+  try{
+    return await fetch(url,{signal:ctrl.signal});
+  }catch(e){
+    return null;
+  }finally{
+    clearTimeout(timer);
+  }
+}
+function getMs(){return{'1m':20000,'3m':22000,'5m':25000,'15m':30000,'30m':45000,'1h':60000,'4h':120000,'1d':180000}[tf]||20000;}
+let fetchInProgress=false;
+function startFetch(){if(refreshTimer)clearInterval(refreshTimer);fetchData();refreshTimer=setInterval(fetchData,getMs());}
+
+async function fetchData(){
+  if(fetchInProgress)return; // не запускаем новый цикл если предыдущий ещё не завершился
+  fetchInProgress=true;
+  try{
+    if(ex==='bybit') await fetchBybit();
+    else if(ex==='okx') await fetchOkx();
+    else if(ex==='mexc') await fetchMexc();
+    else await fetchBinance();
+    if(Object.keys(coins).length===0){
+      // Биржа ответила, но монет не нашлось — вероятно изменился формат ответа API
+      throw new Error('Биржа не вернула данные по монетам');
+    }
+    setSt(true);
+    // Мгновенный промежуточный рендер по объёму 24ч, пока рендж считается в фоне —
+    // так сетка не остаётся пустой на несколько секунд при первой загрузке
+    if(renderedSyms.length===0) renderByVolumeFallback();
+    // После получения базовых данных — подгружаем рендж (% за выбранный период)
+    // forceRefetch=true: это регулярный цикл обновления, нужны свежие klines
+    // (в отличие от switchSortModeFast, где скорость важнее свежести при простом переключении)
+    await applyRangeToCoins(true);
+    // Проверяем алерты по финальным данным (с учётом ренджа)
+    Object.values(coins).forEach(c=>checkAlerts(c.symbol,c.price,c.change,c.volume));
+    if(sortMode==='burst'){
+      await checkVolumeBursts();
+    } else if(sortMode==='plateau'){
+      await checkPlateau();
+    } else {
+      // Режим "Объём в $" не открыт на экране, но всплески всё равно считаем в фоне —
+      // это нужно, чтобы Telegram-алерт на новый всплеск приходил независимо от того,
+      // какой режим сортировки сейчас отображается
+      computeBurstStates();
+      applyFilters();
+    }
+  }catch(e){
+    console.error('fetchData error:',e);
+    setSt(false);
+    // Если сетка всё ещё пуста (первая попытка для этой биржи провалилась) — показываем
+    // явное сообщение об ошибке, а не оставляем "Загрузка данных…" висеть навечно
+    if(renderedSyms.length===0){
+      document.getElementById('grid-area').innerHTML=
+        `<div class="grid-loading">Не удалось получить данные с биржи. Возможно, биржа блокирует запросы из браузера (CORS) или недоступна. Попробуйте другую биржу.</div>`;
+    }
+  }finally{
+    fetchInProgress=false;
+  }
+}
+function renderByVolumeFallback(){
+  const rows=Object.values(coins).filter(c=>c.price>0).sort((a,b)=>b.volume-a.volume);
+  gridSyms=rows.slice(0,cols).map(c=>c.symbol);
+  renderGrid();
+}
+async function fetchBinance(){
+  const r=await fetchWithTimeout('https://fapi.binance.com/fapi/v1/ticker/24hr',8000);
+  if(!r||!r.ok)throw new Error('Binance: нет ответа от сервера');
+  (await r.json()).forEach(t=>{
+    if(!t.symbol?.endsWith('USDT'))return;
+    const sym=t.symbol.replace('USDT',''),pr=parseFloat(t.lastPrice),chg=parseFloat(t.priceChangePercent),vol=parseFloat(t.quoteVolume),cnt=parseFloat(t.count||0);
+    coins[sym]={symbol:sym,price:pr,change:chg,volume:vol,count:cnt,signal:Math.abs(chg)>=2.5&&vol>=500000?(chg>0?'pump':'dump'):'none'};
+  });
+}
+async function fetchBybit(){
+  const r=await fetchWithTimeout('https://api.bybit.com/v5/market/tickers?category=linear',8000);
+  if(!r||!r.ok)throw new Error('ByBit: нет ответа от сервера');
+  (await r.json()).result?.list?.forEach(t=>{
+    if(!t.symbol?.endsWith('USDT'))return;
+    const sym=t.symbol.replace('USDT',''),pr=parseFloat(t.lastPrice||0),chg=parseFloat(t.price24hPcnt||0)*100,vol=parseFloat(t.turnover24h||0);
+    coins[sym]={symbol:sym,price:pr,change:chg,volume:vol,count:0,signal:Math.abs(chg)>=2.5&&vol>=500000?(chg>0?'pump':'dump'):'none'};
+  });
+}
+async function fetchOkx(){
+  const r=await fetchWithTimeout('https://www.okx.com/api/v5/market/tickers?instType=SWAP',8000);
+  if(!r||!r.ok)throw new Error('OKX: нет ответа от сервера');
+  const data=await r.json();
+  (data.data||[]).forEach(t=>{
+    if(!t.instId?.endsWith('-USDT-SWAP'))return;
+    const sym=t.instId.replace('-USDT-SWAP','');
+    const pr=parseFloat(t.last||0),open=parseFloat(t.open24h||0);
+    const chg=open>0?((pr-open)/open*100):0;
+    const vol=parseFloat(t.volCcy24h||0);
+    coins[sym]={symbol:sym,price:pr,change:chg,volume:vol,count:0,signal:Math.abs(chg)>=2.5&&vol>=500000?(chg>0?'pump':'dump'):'none'};
+  });
+}
+// MEXC API не отдаёт CORS-заголовки для прямых браузерных запросов (подтверждено:
+// "No Access-Control-Allow-Origin header"), поэтому используем бесплатный публичный
+// CORS-прокси allorigins.win как обходной путь. Он добавляет нужные заголовки сам.
+// (Пробовали corsproxy.io — он надёжнее по инфраструктуре, но бесплатный тариф
+// разрешает только определённые origin'ы — localhost, известные онлайн-IDE и т.п. —
+// и блокирует запросы с origin "null", который получается при открытии файла
+// напрямую с диска через file://, что и есть способ запуска этого скринера.
+// allorigins.win такого ограничения не имеет, поэтому возвращаемся к нему, несмотря
+// на его собственную нестабильность — 429 Too Many Requests и периодические сбои
+// инфраструктуры случаются, но он хотя бы технически совместим с file://.)
+function mexcProxyUrl(targetUrl){
+  return `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+}
+async function fetchMexc(){
+  // Бесплатный прокси allorigins.win известен своей нестабильностью (часто отвечает
+  // ошибкой даже когда сам MEXC доступен) — делаем до 3 попыток с паузой перед тем
+  // как сдаться и показать ошибку пользователю.
+  let lastErr=null;
+  for(let attempt=1;attempt<=3;attempt++){
+    try{
+      const r=await fetchWithTimeout(mexcProxyUrl('https://api.mexc.com/api/v1/contract/ticker'),10000);
+      if(!r)throw new Error('запрос не дошёл до прокси (таймаут или сетевая ошибка)');
+      if(!r.ok)throw new Error(`прокси ответил с ошибкой ${r.status} ${r.statusText||''}`.trim());
+      const json=await r.json();
+      const list=Array.isArray(json.data)?json.data:(json.data?[json.data]:[]);
+      if(list.length===0)throw new Error('прокси ответил, но данных по монетам нет');
+      list.forEach(t=>{
+        if(!t.symbol?.endsWith('_USDT'))return;
+        const sym=t.symbol.replace('_USDT','');
+        const pr=parseFloat(t.lastPrice||0);
+        // riseFallRate — доля изменения (например 0.014 = +1.4%), переводим в %
+        const chg=parseFloat(t.riseFallRate||0)*100;
+        // amount24 — суточный оборот в валюте котировки (USDT), это и есть объём в $
+        const vol=parseFloat(t.amount24||0);
+        coins[sym]={symbol:sym,price:pr,change:chg,volume:vol,count:0,signal:Math.abs(chg)>=2.5&&vol>=500000?(chg>0?'pump':'dump'):'none'};
+      });
+      return; // успех — выходим без ошибки
+    }catch(e){
+      lastErr=e;
+      if(attempt<3) await new Promise(res=>setTimeout(res,1000*attempt));
+    }
+  }
+  throw new Error(`MEXC: не удалось получить данные после 3 попыток (${lastErr?.message||'неизвестная ошибка'})`);
+}
+// ── РЕНДЖ: % изменения цены за выбранный период (не 24h) ───
+// Кэш сырых klines по символам — позволяет переключаться между "Рендж за 5м" и
+// "Рендж за 1ч" мгновенно, без повторного запроса к бирже (оба периода укладываются
+// в один и тот же набор последних 62 минутных свечей).
+let klinesCache={};
+const MAX_RANGE_MIN=60;
+async function applyRangeToCoins(forceRefetch=false){
+  const mode=SORT_MODES.find(m=>m.key===sortMode)||SORT_MODES[0];
+  const minutes=mode.rangeMin||5;
+  // Берём топ-150 монет по объёму 24ч — этого достаточно чтобы покрыть весь ликвидный рынок
+  // без сотен лишних запросов (полный список ≥$300K может быть 300+ монет и тормозит загрузку)
+  const candidates=Object.values(coins).filter(c=>c.price>0&&c.volume>=300000)
+    .sort((a,b)=>b.volume-a.volume).slice(0,150);
+  const limit=MAX_RANGE_MIN+2; // всегда качаем максимум, чтобы переключение периодов было бесплатным
+  // Бесплатный CORS-прокси для MEXC (allorigins.win) имеет жёсткий rate limit —
+  // большие параллельные батчи сразу дают ошибку 429 (Too Many Requests).
+  // Для остальных бирж (прямой доступ к API) большой батч безопасен.
+  const batchSize=ex==='mexc'?5:40;
+  const candidatesToFetch=forceRefetch?candidates:candidates.filter(c=>!klinesCache[c.symbol]);
+
+  for(let i=0;i<candidatesToFetch.length;i+=batchSize){
+    const batch=candidatesToFetch.slice(i,i+batchSize);
+    await Promise.all(batch.map(async c=>{
+      try{
+        // MEXC klines используют другой протокол запроса: interval=Min1 + start/end
+        // в Unix-секундах (не limit), поэтому считаем временное окно отдельно
+        const nowSec=Math.floor(Date.now()/1000);
+        const startSec=nowSec-limit*60;
+        const url=ex==='bybit'
+          ?`https://api.bybit.com/v5/market/kline?category=linear&symbol=${c.symbol}USDT&interval=1&limit=${limit}`
+          :ex==='okx'
+          ?`https://www.okx.com/api/v5/market/candles?instId=${c.symbol}-USDT-SWAP&bar=1m&limit=${limit}`
+          :ex==='mexc'
+          ?mexcProxyUrl(`https://api.mexc.com/api/v1/contract/kline/${c.symbol}_USDT?interval=Min1&start=${startSec}&end=${nowSec}`)
+          :`https://fapi.binance.com/fapi/v1/klines?symbol=${c.symbol}USDT&interval=1m&limit=${limit}`;
+        // Через CORS-прокси запросы идут заметно медленнее, даём больше времени на ответ
+        const r=await fetchWithTimeout(url,ex==='mexc'?8000:4000);
+        if(!r||!r.ok)return;
+        const data=await r.json();
+        klinesCache[c.symbol]=data;
+      }catch(e){/* пропускаем монету при ошибке */}
+    }));
+    // Пауза между батчами для MEXC — иначе бесплатный прокси быстро отдаёт 429
+    if(ex==='mexc') await new Promise(res=>setTimeout(res,800));
+  }
+
+  // Считаем рендж% для нужного периода из кэша (свежего или только что обновлённого)
+  candidates.forEach(c=>{
+    const data=klinesCache[c.symbol];
+    if(!data)return;
+    let closeNow,closePast;
+    try{
+      if(ex==='bybit'){
+        const list=data.result?.list||[];
+        if(list.length<2)return;
+        closeNow=parseFloat(list[0][4]);
+        const idx=Math.min(minutes,list.length-1);
+        closePast=parseFloat(list[idx][4]);
+      } else if(ex==='okx'){
+        const list=data.data||[];
+        if(list.length<2)return;
+        closeNow=parseFloat(list[0][4]);
+        const idx=Math.min(minutes,list.length-1);
+        closePast=parseFloat(list[idx][4]);
+      } else if(ex==='mexc'){
+        // mexc kline: data.data.close — массив цен закрытия по возрастанию времени
+        const closes=data.data?.close||[];
+        if(closes.length<2)return;
+        closeNow=closes[closes.length-1];
+        const idx=Math.max(0,closes.length-1-minutes);
+        closePast=closes[idx];
+      } else {
+        if(data.length<2)return;
+        closeNow=parseFloat(data[data.length-1][4]);
+        const idx=Math.max(0,data.length-1-minutes);
+        closePast=parseFloat(data[idx][4]);
+      }
+      if(closePast>0&&coins[c.symbol]){
+        const rangeChg=(closeNow-closePast)/closePast*100;
+        coins[c.symbol].rangeChange=rangeChg;
+        coins[c.symbol].change=rangeChg;
+        coins[c.symbol].hasRange=true;
+      }
+    }catch(e){/* пропускаем при ошибке парсинга */}
+  });
+}
+
+// ── ВСПЛЕСКИ ОБЪЁМА: ≥10 минутных свечей по $1M за последние 30 минут ──
+const BURST_WINDOW_MIN=30, BURST_MIN_CANDLES=10, BURST_THRESHOLD_USD=1000000;
+// Тяжеловесы (BTC, ETH, SOL и т.п.) почти всегда держат объём ≥$1M на свечу — это их
+// обычное фоновое состояние, а не всплеск интереса. Если в широком окне (60 минут)
+// доля таких свечей выше HEAVYWEIGHT_RATIO — считаем это нормой монеты и исключаем
+// её из результатов, даже если формальное условие "10 из 30" выполнено.
+const HEAVYWEIGHT_WINDOW_MIN=60, HEAVYWEIGHT_RATIO=0.45;
+// Ручной список исключений — крупные монеты и привязанные/не-волатильные токены
+// (стейблкоины, токенизированное золото), у которых высокий объём — это нормальное
+// состояние, а не сигнал интереса для скальпинга. Работает вместе с авто-фильтром
+// выше, а не вместо него — некоторые монеты (например SOL) не всегда стабильно
+// проходят порог HEAVYWEIGHT_RATIO, но всё равно неинтересны как "всплеск".
+const EXCLUDED_BURST_SYMBOLS=new Set(['BTC','ETH','SOL','BNB','XRP','DOGE','ADA','TRX','AVAX','LINK','PAXG','XAUT','XAU','XAG','CL','BRENT','WTI','NG','FDUSD','USDC','USDT','TUSD','DAI','BUSD']);
+// Множество символов, которые уже считались "всплеском" на предыдущей проверке —
+// нужно чтобы отправлять Telegram-алерт только на МОМЕНТ появления всплеска,
+// а не повторно на каждом цикле пока он длится
+let burstAlertedSyms=new Set();
+const BURST_ALERT_COOLDOWN_MS=60*60*1000; // не слать повторный алерт по той же монете чаще раза в час
+let burstAlertCooldown={};
+
+// Считает всплески объёма для всех ликвидных монет и обновляет coins[].isBurst/.burstCount.
+// Работает в фоне на каждом обычном цикле обновления, независимо от того, какой режим
+// сортировки сейчас открыт на экране — чтобы Telegram-алерт на новый всплеск приходил всегда.
+let burstComputeInProgress=false;
+async function computeBurstStates(){
+  if(burstComputeInProgress)return;
+  burstComputeInProgress=true;
+  try{
+  // Берём топ-150 ликвидных монет по объёму 24ч, исключая ручной список тяжеловесов
+  const candidates=Object.values(coins).filter(c=>c.price>0&&c.volume>=300000&&!EXCLUDED_BURST_SYMBOLS.has(c.symbol))
+    .sort((a,b)=>b.volume-a.volume).slice(0,150);
+  const batchSize=40;
+  // klinesCache уже содержит до MAX_RANGE_MIN+2 (62) минутных свечей на монету — этого
+  // достаточно для 30-минутного окна всплеска, так что повторный запрос нужен только
+  // для монет, которых ещё нет в кэше (новые в топ-150, или первый запуск burst-режима)
+  const candidatesToFetch=candidates.filter(c=>!klinesCache[c.symbol]);
+  const limit=MAX_RANGE_MIN+2;
+
+  for(let i=0;i<candidatesToFetch.length;i+=batchSize){
+    const batch=candidatesToFetch.slice(i,i+batchSize);
+    await Promise.all(batch.map(async c=>{
+      try{
+        const url=ex==='bybit'
+          ?`https://api.bybit.com/v5/market/kline?category=linear&symbol=${c.symbol}USDT&interval=1&limit=${limit}`
+          :ex==='okx'
+          ?`https://www.okx.com/api/v5/market/candles?instId=${c.symbol}-USDT-SWAP&bar=1m&limit=${limit}`
+          :`https://fapi.binance.com/fapi/v1/klines?symbol=${c.symbol}USDT&interval=1m&limit=${limit}`;
+        const r=await fetchWithTimeout(url,4000);
+        if(!r||!r.ok)return;
+        klinesCache[c.symbol]=await r.json();
+      }catch(e){/* пропускаем монету при ошибке сети */}
+    }));
+  }
+
+  // Считаем всплески из кэша (свежего или только что дозагруженного)
+  const newBurstSyms=new Set();
+  candidates.forEach(c=>{
+    const data=klinesCache[c.symbol];
+    if(!data)return;
+    try{
+      let candleVolsUsd=[];
+      if(ex==='bybit'){
+        // bybit kline: [startTime, open, high, low, close, volume, turnover] — turnover = объём в USDT
+        const list=data.result?.list||[];
+        candleVolsUsd=list.map(k=>parseFloat(k[6]||0));
+      } else if(ex==='okx'){
+        // okx candles: [ts,o,h,l,c,vol,volCcy,volCcyQuote,confirm] — volCcyQuote = объём в USDT
+        const list=data.data||[];
+        candleVolsUsd=list.map(k=>parseFloat(k[7]||k[6]||0));
+      } else {
+        // binance klines: [openTime,open,high,low,close,volume,closeTime,quoteAssetVolume,...] — index 7 = quote volume USDT
+        candleVolsUsd=(data||[]).map(k=>parseFloat(k[7]||0));
+      }
+      // Считаем сколько свечек из последних BURST_WINDOW_MIN превысили порог
+      const windowSlice=candleVolsUsd.slice(-BURST_WINDOW_MIN);
+      const burstCount=windowSlice.filter(v=>v>=BURST_THRESHOLD_USD).length;
+
+      // Проверяем, не тяжеловес ли это: смотрим широкое фоновое окно (60 минут).
+      // Если там доля свечей ≥$1M слишком высока — это обычное состояние монеты,
+      // а не всплеск интереса, и её нужно исключить из результатов.
+      const bgSlice=candleVolsUsd.slice(-HEAVYWEIGHT_WINDOW_MIN);
+      const bgHighCount=bgSlice.filter(v=>v>=BURST_THRESHOLD_USD).length;
+      const bgRatio=bgSlice.length>0?bgHighCount/bgSlice.length:0;
+      const isHeavyweight=bgRatio>=HEAVYWEIGHT_RATIO;
+
+      const isBurstNow=burstCount>=BURST_MIN_CANDLES&&!isHeavyweight;
+      if(coins[c.symbol]){
+        coins[c.symbol].burstCount=burstCount;
+        coins[c.symbol].isBurst=isBurstNow;
+      }
+      if(isBurstNow) newBurstSyms.add(c.symbol);
+    }catch(e){/* пропускаем при ошибке парсинга */}
+  });
+
+  // Telegram-алерт на МОМЕНТ появления нового всплеска (монета не была во всплеске
+  // на прошлой проверке, а теперь стала), с cooldown чтобы не спамить повторно
+  newBurstSyms.forEach(sym=>{
+    const wasAlready=burstAlertedSyms.has(sym);
+    const lastAlert=burstAlertCooldown[sym];
+    const cooledDown=lastAlert===undefined||Date.now()-lastAlert>=BURST_ALERT_COOLDOWN_MS;
+    if(!wasAlready&&cooledDown){
+      burstAlertCooldown[sym]=Date.now();
+      sendBurstAlert(sym,coins[sym]);
+    }
+  });
+  burstAlertedSyms=newBurstSyms;
+  }finally{
+    burstComputeInProgress=false;
+  }
+}
+
+async function sendBurstAlert(sym,c){
+  if(!tgTok||!tgCid||!c)return;
+  const sign=c.change>=0?'+':'';
+  const txt=`🔥 *Объём в $* — обнаружен всплеск\n*${sym}/USDT* — ${ex.toUpperCase()}\nЦена: \`$${fmtP(c.price)}\` (${sign}${c.change.toFixed(2)}%)\nСвечей ≥$1M за 30м: \`${c.burstCount}/30\`\nОбъём 24ч: \`${fmtV(c.volume)}\``;
+  try{await fetch(`https://api.telegram.org/bot${tgTok}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:tgCid,text:txt,parse_mode:'Markdown'})});}catch(e){}
+}
+
+// Обёртка для UI: считает всплески (если ещё не посчитаны на этом цикле) и применяет
+// результат к сетке — вызывается только когда режим "Объём в $" открыт на экране
+async function checkVolumeBursts(){
+  await computeBurstStates();
+
+  // Применяем фильтр: показываем только монеты со всплеском, сортируем по силе всплеска
+  let rows=Object.values(coins).filter(c=>c.isBurst);
+  rows.sort((a,b)=>(b.burstCount||0)-(a.burstCount||0));
+
+  // Тот же гистерезис что и в applyFilters — не даём сетке дёргаться при незначительных
+  // изменениях burstCount на границе топа
+  const HYSTERESIS_MARGIN=4;
+  const currentSet=new Set(renderedSyms);
+  const topStrict=rows.slice(0,cols).map(c=>c.symbol);
+  const extended=rows.slice(0,cols+HYSTERESIS_MARGIN).map(c=>c.symbol);
+  const keep=extended.filter(s=>currentSet.has(s));
+  const result=[...keep];
+  for(const s of topStrict){
+    if(result.length>=cols) break;
+    if(!result.includes(s)) result.push(s);
+  }
+
+  gridSyms=result.slice(0,cols);
+  renderGrid();
+}
+
+// ── ПЛАТО ОБЪЁМА: тишина → стабильный высокий уровень → тишина ──
+// Паттерн ищется по форме, а не по абсолютным цифрам: монета с почти нулевым
+// фоновым объёмом внезапно выходит на стабильную "полку" (объём держится примерно
+// на одном уровне, без хаотичных скачков), а затем падает обратно к тишине.
+// Применяется только к низколиквидным монетам (суточный объём ≤$300K) — у крупных
+// монет такой паттерн почти невозможен и неинтересен для скальпинга.
+const PLATEAU_MAX_24H_VOLUME=300000;     // верхний потолок объёма 24ч для кандидатов
+const PLATEAU_QUIET_CV=0.6;               // коэф. вариации (std/mean) ниже которого сегмент считается "тихим"
+const PLATEAU_STABLE_CV=0.35;             // коэф. вариации ниже которого сегмент считается "стабильным плато"
+const PLATEAU_MIN_RATIO=3;                // во сколько раз плато должно быть выше фона минимум
+const PLATEAU_MIN_LEN=2;                  // минимальная длина плато в свечах (просто отличить от шума в 1 точку)
+
+function mean(arr){return arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:0;}
+function stdDev(arr){
+  if(arr.length<2)return 0;
+  const m=mean(arr);
+  return Math.sqrt(arr.reduce((a,b)=>a+(b-m)**2,0)/arr.length);
+}
+function coefVar(arr){
+  const m=mean(arr);
+  return m>0?stdDev(arr)/m:Infinity;
+}
+
+// Ищет в массиве объёмов (по возрастанию времени) структуру тишина→плато→тишина.
+// Возвращает {found, plateauHeight, baselineHeight} либо {found:false}.
+function findPlateauPattern(vols){
+  const n=vols.length;
+  if(n<6)return{found:false}; // слишком мало данных для надёжного анализа формы
+
+  // Перебираем все возможные границы плато (начало i, конец j) и проверяем форму
+  // вокруг них. Это O(n^2), но n обычно ≤62 (минут в окне), так что не дорого.
+  let best=null;
+  for(let i=1;i<n-1;i++){
+    for(let j=i+PLATEAU_MIN_LEN-1;j<n-1;j++){
+      const before=vols.slice(0,i);
+      const plateau=vols.slice(i,j+1);
+      const after=vols.slice(j+1);
+      if(before.length<2||after.length<2||plateau.length<PLATEAU_MIN_LEN)continue;
+
+      const beforeMean=mean(before),afterMean=mean(after),plateauMean=mean(plateau);
+      if(plateauMean<=0)continue;
+
+      // "Тишина" до и после — низкая дисперсия относительно своего среднего
+      const beforeCV=coefVar(before),afterCV=coefVar(after);
+      if(beforeCV>PLATEAU_QUIET_CV||afterCV>PLATEAU_QUIET_CV)continue;
+
+      // Само плато — стабильно (низкая дисперсия), и заметно выше фона
+      const plateauCV=coefVar(plateau);
+      if(plateauCV>PLATEAU_STABLE_CV)continue;
+
+      const baselineMean=(beforeMean+afterMean)/2;
+      if(baselineMean<=0)continue;
+      const ratio=plateauMean/baselineMean;
+      if(ratio<PLATEAU_MIN_RATIO)continue;
+
+      // Среди валидных вариантов выбираем тот, что даёт наиболее выраженный (высокий
+      // относительно фона) и наиболее стабильный (низкий CV) сигнал
+      const score=ratio/(plateauCV+0.05);
+      if(!best||score>best.score){
+        best={found:true,plateauHeight:plateauMean,baselineHeight:baselineMean,ratio,score};
+      }
+    }
+  }
+  return best||{found:false};
+}
+
+let plateauComputeInProgress=false;
+async function computePlateauStates(){
+  if(plateauComputeInProgress)return;
+  plateauComputeInProgress=true;
+  try{
+    // Только низколиквидные монеты — суточный объём ≤$300K (противоположный фильтр
+    // тому, что используется в остальных режимах, где нужны ликвидные монеты)
+    const candidates=Object.values(coins).filter(c=>c.price>0&&c.volume>0&&c.volume<=PLATEAU_MAX_24H_VOLUME);
+    // Бесплатный CORS-прокси для MEXC (allorigins.win) имеет жёсткий rate limit —
+    // большие параллельные батчи сразу дают ошибку 429 (Too Many Requests)
+    const batchSize=ex==='mexc'?5:40;
+    const limit=MAX_RANGE_MIN+2;
+    const candidatesToFetch=candidates.filter(c=>!klinesCache[c.symbol]);
+
+    for(let i=0;i<candidatesToFetch.length;i+=batchSize){
+      const batch=candidatesToFetch.slice(i,i+batchSize);
+      await Promise.all(batch.map(async c=>{
+        try{
+          const nowSec=Math.floor(Date.now()/1000);
+          const startSec=nowSec-limit*60;
+          const url=ex==='bybit'
+            ?`https://api.bybit.com/v5/market/kline?category=linear&symbol=${c.symbol}USDT&interval=1&limit=${limit}`
+            :ex==='okx'
+            ?`https://www.okx.com/api/v5/market/candles?instId=${c.symbol}-USDT-SWAP&bar=1m&limit=${limit}`
+            :ex==='mexc'
+            ?mexcProxyUrl(`https://api.mexc.com/api/v1/contract/kline/${c.symbol}_USDT?interval=Min1&start=${startSec}&end=${nowSec}`)
+            :`https://fapi.binance.com/fapi/v1/klines?symbol=${c.symbol}USDT&interval=1m&limit=${limit}`;
+          const r=await fetchWithTimeout(url,ex==='mexc'?8000:4000);
+          if(!r||!r.ok)return;
+          klinesCache[c.symbol]=await r.json();
+        }catch(e){/* пропускаем монету при ошибке сети */}
+      }));
+      // Пауза между батчами для MEXC — иначе бесплатный прокси быстро отдаёт 429
+      if(ex==='mexc') await new Promise(res=>setTimeout(res,800));
+    }
+
+    candidates.forEach(c=>{
+      const data=klinesCache[c.symbol];
+      if(!data){coins[c.symbol].isPlateau=false;return;}
+      try{
+        let vols=[];
+        if(ex==='bybit'){
+          // bybit kline отдаёт от новых к старым — разворачиваем в хронологический порядок
+          const list=data.result?.list||[];
+          vols=list.map(k=>parseFloat(k[6]||0)).reverse();
+        } else if(ex==='okx'){
+          const list=data.data||[];
+          vols=list.map(k=>parseFloat(k[7]||k[6]||0)).reverse();
+        } else if(ex==='mexc'){
+          // mexc kline: amount — оборот в валюте по каждой свече, уже по возрастанию времени
+          vols=(data.data?.amount||[]).map(v=>parseFloat(v||0));
+        } else {
+          vols=(data||[]).map(k=>parseFloat(k[7]||0));
+        }
+        const result=findPlateauPattern(vols);
+        coins[c.symbol].isPlateau=result.found;
+        coins[c.symbol].plateauRatio=result.found?result.ratio:0;
+      }catch(e){
+        coins[c.symbol].isPlateau=false;
+      }
+    });
+  }finally{
+    plateauComputeInProgress=false;
+  }
+}
+
+async function checkPlateau(){
+  await computePlateauStates();
+
+  let rows=Object.values(coins).filter(c=>c.isPlateau);
+  rows.sort((a,b)=>(b.plateauRatio||0)-(a.plateauRatio||0));
+
+  const HYSTERESIS_MARGIN=4;
+  const currentSet=new Set(renderedSyms);
+  const topStrict=rows.slice(0,cols).map(c=>c.symbol);
+  const extended=rows.slice(0,cols+HYSTERESIS_MARGIN).map(c=>c.symbol);
+  const keep=extended.filter(s=>currentSet.has(s));
+  const result=[...keep];
+  for(const s of topStrict){
+    if(result.length>=cols) break;
+    if(!result.includes(s)) result.push(s);
+  }
+
+  gridSyms=result.slice(0,cols);
+  renderGrid();
+}
+
+
+function updateGridLayout(){
+  const area=document.getElementById('grid-area');
+  // Считаем колонки: для 16 → 4 cols × 4 rows, для 9 → 3×3 и т.д.
+  const colMap={3:3,4:4,6:3,9:3,12:4,16:4,25:5,50:10};
+  const numCols=colMap[cols]||Math.ceil(Math.sqrt(cols));
+  const numRows=Math.ceil(cols/numCols);
+  area.style.gridTemplateColumns=`repeat(${numCols},1fr)`;
+  area.style.gridTemplateRows=`repeat(${numRows},1fr)`;
+  renderedSyms=[];
+  if(Object.keys(coins).length>0) applyFilters();
+}
+
+function applyFilters(){
+  const f=activeFilters;
+  let rows=Object.values(coins).filter(c=>c.price>0);
+  if(f.volMin>0) rows=rows.filter(c=>c.volume>=f.volMin);
+  if(f.volMax>0) rows=rows.filter(c=>c.volume<=f.volMax);
+  if(f.chgMin>0) rows=rows.filter(c=>Math.abs(c.change)>=f.chgMin);
+  if(f.chgMax>0) rows=rows.filter(c=>Math.abs(c.change)<=f.chgMax);
+
+  // Сортировка по модулю ренджа (используется для режимов 'range5' и 'range1h')
+  // Показываем только монеты с реально рассчитанным ренджем
+  rows=rows.filter(c=>c.hasRange);
+  rows.sort((a,b)=>Math.abs(b.change)-Math.abs(a.change));
+
+  // Гистерезис: монета уже в сетке остаётся там, пока не выпадет за расширенную границу
+  // (cols + запас). Без этого монеты на границе топа постоянно меняются местами при
+  // малейшем колебании цены, что вызывает пересоздание iframe и видимые перезагрузки графиков.
+  const HYSTERESIS_MARGIN=4;
+  const currentSet=new Set(renderedSyms);
+  const topStrict=rows.slice(0,cols).map(c=>c.symbol);
+  const extended=rows.slice(0,cols+HYSTERESIS_MARGIN).map(c=>c.symbol);
+
+  // Сохраняем монеты, которые уже отображались и всё ещё входят в расширенный топ
+  const keep=extended.filter(s=>currentSet.has(s));
+  // Добавляем новые монеты из строгого топа, которых ещё нет в сетке, пока не наберём cols
+  const result=[...keep];
+  for(const s of topStrict){
+    if(result.length>=cols) break;
+    if(!result.includes(s)) result.push(s);
+  }
+
+  gridSyms=result.slice(0,cols);
+  renderGrid();
+}
+
+function tvSym(sym){
+  const m={binance:`BINANCE:${sym}USDT.P`,bybit:`BYBIT:${sym}USDT.P`,okx:`OKX:${sym}USDT.P`,mexc:`MEXC:${sym}USDT.P`};
+  return m[ex]||`BINANCE:${sym}USDT.P`;
+}
+function tvUrl(sym,interval,fullTools=false){
+  const cfg=JSON.stringify({
+    autosize:true,symbol:tvSym(sym),interval:TV_TF[interval]||'1',
+    timezone:'Europe/Moscow',theme:'dark',style:'1',locale:'ru',
+    backgroundColor:'rgba(7,7,20,1)',gridColor:'rgba(26,26,56,0.3)',
+    hide_top_toolbar:!fullTools,hide_legend:false,hide_side_toolbar:!fullTools,
+    allow_symbol_change:fullTools,save_image:false,
+    withdateranges:false,details:false,hotlist:false,calendar:false,
+    hide_volume:false,
+  });
+  return`https://s.tradingview.com/embed-widget/advanced-chart/?locale=ru#${encodeURIComponent(cfg)}`;
+}
+
+// Рассчитывает glow-эффект ячейки по силе движения цены (сигнатурный визуальный элемент)
+function cellGlow(change){
+  const abs=Math.abs(change||0);
+  if(abs<0.5) return{border:'var(--border)',shadow:'none'};
+  const intensity=Math.min(abs/15,1); // нормируем: 15%+ движение = максимальное свечение
+  const color=change>=0?'0,255,225':'255,0,170'; // циан для роста, магента для падения
+  const blur=8+intensity*28;
+  const spread=intensity*2;
+  return{
+    border:`rgba(${color},${0.3+intensity*0.6})`,
+    shadow:`0 0 ${blur.toFixed(0)}px ${spread.toFixed(0)}px rgba(${color},${(intensity*0.35).toFixed(2)})`
+  };
+}
+
+function renderGrid(){
+  const area=document.getElementById('grid-area');
+  // Сравниваем НАБОР монет (без учёта порядка) — порядок внутри топ-N меняется почти
+  // каждое обновление из-за колебаний цены, но сам набор символов часто остаётся тем же.
+  // Если набор не изменился — просто переставляем существующие ячейки через CSS order,
+  // без пересоздания iframe (которое вызывает полную перезагрузку графика TradingView).
+  const prevSet=new Set(renderedSyms);
+  const newSet=new Set(gridSyms);
+  const sameSet=prevSet.size===newSet.size&&[...prevSet].every(s=>newSet.has(s));
+
+  if(!sameSet){
+    renderedSyms=[...gridSyms];
+    area.innerHTML='';
+    if(gridSyms.length===0){
+      // Пустой результат — частый легитимный случай для режима "Плато" (паттерн
+      // тишина→плато→тишина может просто не встречаться прямо сейчас ни у одной
+      // монеты), показываем понятное сообщение вместо пустого экрана без объяснений
+      const msg=sortMode==='plateau'
+        ?'Сейчас нет монет с паттерном "тишина → плато → тишина". Это нормально — паттерн появляется не постоянно, попробуйте проверить позже.'
+        :sortMode==='burst'
+        ?'Сейчас нет монет с активным всплеском объёма.'
+        :'Нет данных для отображения.';
+      area.innerHTML=`<div class="grid-loading">${msg}</div>`;
+      return;
+    }
+    gridSyms.forEach((sym,idx)=>{
+      const c=coins[sym]||{};
+      const cls=c.change>0?'up':c.change<0?'dn':'nu';
+      const sign=c.change>=0?'+':'';
+      const burstBadge=sortMode==='burst'&&c.burstCount?`<span class="cb-burst">🔥${c.burstCount}/${BURST_WINDOW_MIN}м</span>`:'';
+      const glow=cellGlow(c.change);
+      const cell=document.createElement('div');
+      cell.className='cell';
+      cell.style.order=idx;
+      cell.style.borderColor=glow.border;
+      cell.style.boxShadow=glow.shadow;
+      cell.innerHTML=`
+        <div class="cell-bar" id="cb-${sym}">
+          <span class="cb-chg ${cls}">${sign}${(c.change||0).toFixed(2)}%</span>
+          <span class="cb-price">$${fmtP(c.price||0)}</span>
+          <span class="cb-vol">${fmtV(c.volume||0)}</span>
+          ${burstBadge}
+          ${c.signal&&c.signal!=='none'?`<div class="cb-fire ${c.signal}"></div>`:''}
+          <span class="cb-sym">${sym}</span>
+        </div>
+        <iframe class="cell-frame" id="frame-${sym}" src="${tvUrl(sym,tf)}" scrolling="no" allowtransparency="true" frameborder="0" loading="lazy"></iframe>`;
+      // Клик по шапке ячейки → открыть полный график
+      cell.querySelector('.cell-bar').addEventListener('click',()=>openChartModal(sym));
+      // Клик по самому графику тоже открывает модалку, но скролл/зум/драг работают внутри iframe.
+      // Технически: ловим mousedown+mouseup без существенного сдвига курсора как "клик";
+      // wheel-события и обычное взаимодействие с TradingView идут напрямую в iframe (pointer-events:auto).
+      attachCellClickOverlay(cell,sym);
+      area.appendChild(cell);
+    });
+  } else {
+    // Набор тот же — обновляем порядок отображения (без пересоздания iframe) и цифры
+    renderedSyms=[...gridSyms];
+    gridSyms.forEach((sym,idx)=>{
+      const cb=document.getElementById('cb-'+sym);
+      if(!cb)return;
+      const cell=cb.parentElement;
+      if(cell) cell.style.order=idx;
+      const c=coins[sym]||{};
+      const cls=c.change>0?'up':c.change<0?'dn':'nu';
+      const sign=c.change>=0?'+':'';
+      cb.querySelector('.cb-chg').textContent=sign+(c.change||0).toFixed(2)+'%';
+      cb.querySelector('.cb-chg').className='cb-chg '+cls;
+      cb.querySelector('.cb-price').textContent='$'+fmtP(c.price||0);
+      cb.querySelector('.cb-vol').textContent=fmtV(c.volume||0);
+      // Обновляем glow ячейки
+      const glow=cellGlow(c.change);
+      if(cell){cell.style.borderColor=glow.border;cell.style.boxShadow=glow.shadow;}
+      let burstEl=cb.querySelector('.cb-burst');
+      if(sortMode==='burst'&&c.burstCount){
+        if(!burstEl){burstEl=document.createElement('span');burstEl.className='cb-burst';cb.insertBefore(burstEl,cb.querySelector('.cb-sym'));}
+        burstEl.textContent=`🔥${c.burstCount}/${BURST_WINDOW_MIN}м`;
+      } else if(burstEl) burstEl.remove();
+      let fire=cb.querySelector('.cb-fire');
+      if(c.signal&&c.signal!=='none'){
+        if(!fire){fire=document.createElement('div');cb.insertBefore(fire,cb.querySelector('.cb-sym'));}
+        fire.className='cb-fire '+c.signal;
+      } else if(fire) fire.remove();
+    });
+  }
+}
+
+// Клик по графику открывает модалку. Любой скролл колесом мыши над графиком зумит/скроллит
+// прямо в TradingView внутри ячейки, без модификаторов клавиш.
+function attachCellClickOverlay(cell,sym){
+  const frame=cell.querySelector('.cell-frame');
+  const overlay=document.createElement('div');
+  overlay.className='cell-overlay-click';
+  overlay.title='Клик — открыть график · Скролл — зум прямо тут';
+  overlay.addEventListener('click',()=>openChartModal(sym));
+  overlay.addEventListener('wheel',()=>{
+    // Пропускаем зум в TradingView: на короткое время убираем оверлей с пути событий,
+    // чтобы wheel-событие дошло до iframe снизу
+    overlay.style.pointerEvents='none';
+    clearTimeout(overlay._wheelTimer);
+    overlay._wheelTimer=setTimeout(()=>{overlay.style.pointerEvents='auto';},250);
+  },{passive:true});
+  frame.insertAdjacentElement('afterend',overlay);
+}
+
+// ── CHART MODAL ────────────────────────────────────────────
+function openChartModal(sym){
+  chartModalSym=sym;
+  chartModalTf=tf;
+  document.getElementById('chart-modal-title').textContent=`${sym}/USDT · ${chartModalTf.toUpperCase()}`;
+  document.getElementById('chart-modal-frame').src=tvUrl(sym,chartModalTf,true);
+  // Подсветить активный TF
+  document.querySelectorAll('#chart-modal-tf .tf-btn').forEach(b=>{
+    b.classList.toggle('on',b.textContent.toLowerCase().replace('м','m').replace('ч','h')===chartModalTf||b.textContent===chartModalTf);
+  });
+  document.getElementById('chart-modal').classList.add('open');
+}
+function changeChartTf(newTf,el){
+  chartModalTf=newTf;
+  document.querySelectorAll('#chart-modal-tf .tf-btn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('chart-modal-title').textContent=`${chartModalSym}/USDT · ${newTf.toUpperCase()}`;
+  document.getElementById('chart-modal-frame').src=tvUrl(chartModalSym,newTf,true);
+}
+function closeChartModal(){
+  document.getElementById('chart-modal').classList.remove('open');
+  setTimeout(()=>document.getElementById('chart-modal-frame').src='',300);
+}
+
+// ── SEARCH MODAL ───────────────────────────────────────────
+function openSearchModal(){
+  document.getElementById('search-modal').classList.add('open');
+  document.getElementById('search-input').value='';
+  document.getElementById('search-results').innerHTML='<div class="search-empty">Начните вводить название монеты</div>';
+  searchIdx=-1;
+  setTimeout(()=>document.getElementById('search-input').focus(),50);
+}
+function closeSearchModal(){
+  document.getElementById('search-modal').classList.remove('open');
+}
+function onSearchInput(){
+  const q=document.getElementById('search-input').value.trim().toUpperCase();
+  searchIdx=-1;
+  if(!q){
+    document.getElementById('search-results').innerHTML='<div class="search-empty">Начните вводить название монеты</div>';
+    return;
+  }
+  const matches=Object.values(coins)
+    .filter(c=>c.symbol.startsWith(q)||c.symbol.includes(q))
+    .sort((a,b)=>{
+      // Точное совпадение сначала, потом начинается с запроса, потом содержит
+      const aExact=a.symbol===q?0:a.symbol.startsWith(q)?1:2;
+      const bExact=b.symbol===q?0:b.symbol.startsWith(q)?1:2;
+      return aExact-bExact||b.volume-a.volume;
+    })
+    .slice(0,20);
+
+  if(!matches.length){
+    document.getElementById('search-results').innerHTML='<div class="search-empty">Монеты не найдены</div>';
+    return;
+  }
+  document.getElementById('search-results').innerHTML=matches.map((c,i)=>{
+    const cls=c.change>0?'up':c.change<0?'dn':'nu';
+    const sign=c.change>=0?'+':'';
+    // Подсветить совпадение
+    const sym=c.symbol.replace(q,`<mark style="background:rgba(167,139,250,.3);color:var(--pl);border-radius:2px">${q}</mark>`);
+    return`<div class="search-item" id="si-${i}" onclick="selectSearchItem('${c.symbol}')">
+      <span class="si-sym">${sym}/USDT</span>
+      <span class="si-name" style="color:var(--t2)">${ex.toUpperCase()} Futures</span>
+      <span class="si-chg ${cls}">${sign}${c.change.toFixed(2)}%</span>
+      <span class="si-vol">${fmtV(c.volume)}</span>
+    </div>`;
+  }).join('');
+}
+function onSearchKey(e){
+  const items=document.querySelectorAll('.search-item');
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    searchIdx=Math.min(searchIdx+1,items.length-1);
+    items.forEach((it,i)=>it.classList.toggle('active',i===searchIdx));
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    searchIdx=Math.max(searchIdx-1,0);
+    items.forEach((it,i)=>it.classList.toggle('active',i===searchIdx));
+  } else if(e.key==='Enter'){
+    e.preventDefault();
+    if(searchIdx>=0&&items[searchIdx]){
+      items[searchIdx].click();
+    } else if(items.length>0){
+      items[0].click();
+    }
+  } else if(e.key==='Escape'){
+    closeSearchModal();
+  }
+}
+function selectSearchItem(sym){
+  closeSearchModal();
+  setTimeout(()=>openChartModal(sym),50);
+}
+
+// ── ALERTS MODAL ───────────────────────────────────────────
+let alertsSubTab='all';
+
+function openAlertsModal(){
+  document.getElementById('alerts-modal').classList.add('open');
+  renderAlertsList();
+}
+function closeAlertsModal(){
+  document.getElementById('alerts-modal').classList.remove('open');
+}
+function switchAlTab(tab){
+  alertsTab=tab;
+  document.getElementById('amt-active').classList.toggle('on',tab==='active');
+  document.getElementById('amt-fired').classList.toggle('on',tab==='fired');
+  renderAlertsList();
+}
+function switchAlSubTab(tab){
+  alertsSubTab=tab;
+  document.getElementById('ast-all').classList.toggle('on',tab==='all');
+  document.getElementById('ast-price').classList.toggle('on',tab==='price');
+  renderAlertsList();
+}
+function renderAlertsList(){
+  const el=document.getElementById('al-list-wrap');
+  const isFired=alertsTab==='fired';
+  const list=isFired?fireLog.slice(0,30):alerts.filter(a=>alertsSubTab==='all'||a.type==='above'||a.type==='below');
+
+  if(!list.length){
+    el.innerHTML=`<div class="al-empty">
+      <span class="al-empty-txt">${isFired?'Нет отработанных алертов':'У вас ещё нет оповещений'}</span>
+      ${!isFired?`<button class="al-create-btn" onclick="openCreateAlert()">⊕ Создайте свой первый алерт</button>`:''}
+    </div>`;
+    return;
+  }
+  if(!isFired){
+    el.innerHTML=list.map(a=>`<div class="al-item">
+      <span class="al-item-sym">${a.sym}</span>
+      <span class="al-item-cond">${condLabel(a)}</span>
+      <span class="al-item-val">${a.type==='above'||a.type==='below'?'$'+fmtP(a.val):a.val+(a.type==='vol'?'':' %')}</span>
+      <span class="al-item-badge ${a.fired?'fired':'active'}">${a.fired?'сработал':'активен'}</span>
+      <button class="al-del" onclick="delAlert(${a.id})">✕</button>
+    </div>`).join('');
+  } else {
+    el.innerHTML=list.map(l=>`<div class="al-item">
+      <span class="al-item-sym">${l.sym}</span>
+      <span class="al-item-cond">${l.cond}</span>
+      <span class="${l.chg>=0?'up':'dn'}" style="font-size:13px;font-weight:600">${l.chg>=0?'+':''}${l.chg.toFixed(2)}%</span>
+      <span style="font-size:12px;color:var(--t3);margin-left:auto">${l.t}</span>
+    </div>`).join('');
+  }
+}
+
+// ── WIZARD STATE ────────────────────────────────────────────
+let wzStep=1, wzAlertType='price', wzSymSel='', wzSymIdx=-1;
+
+function openCreateAlert(){
+  wzStep=1; wzAlertType='price'; wzSymSel=''; wzSymIdx=-1;
+  // Reset form
+  ['wz-name','wz-sym','wz-price'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  document.getElementById('wz-cond').value='above';
+  document.getElementById('wz-exchange').value='';
+  document.getElementById('wz-current-price').textContent='';
+  document.getElementById('wz-sym-dropdown').style.display='none';
+  // Reset type cards
+  document.getElementById('wt-price').classList.add('on');
+  document.getElementById('wt-complex').classList.remove('on');
+  renderWzStep();
+  document.getElementById('create-alert-modal').classList.add('open');
+}
+function closeCreateAlert(){
+  document.getElementById('create-alert-modal').classList.remove('open');
+  document.getElementById('wz-sym-dropdown').style.display='none';
+}
+
+function selectAlertType(t){
+  wzAlertType=t;
+  document.getElementById('wt-price').classList.toggle('on',t==='price');
+  document.getElementById('wt-complex').classList.toggle('on',t==='complex');
+  document.getElementById('wz-next-btn').classList.add('enabled');
+  document.getElementById('wz-next-btn').disabled=false;
+}
+
+function renderWzStep(){
+  [1,2,3].forEach(i=>{
+    document.getElementById('wz-page-'+i).style.display=i===wzStep?'block':'none';
+  });
+  // На шаге 3 показываем нужную панель
+  if(wzStep===3){
+    const isComplex=wzAlertType==='complex';
+    document.getElementById('wz-price-params').style.display=isComplex?'none':'flex';
+    document.getElementById('wz-complex-params').style.display=isComplex?'block':'none';
+    // Для комплексного — меняем размер модала
+    const box=document.querySelector('#create-alert-modal .modal-box');
+    if(box) box.style.height=isComplex?'82vh':'auto';
+  }
+  [1,2,3].forEach(i=>{
+    const s=document.getElementById('ws-'+i);
+    const icon=document.getElementById('wsi-'+i);
+    s.classList.remove('active','done');
+    if(i<wzStep){s.classList.add('done');icon.textContent='✓';}
+    else if(i===wzStep){s.classList.add('active');icon.textContent=i===1?'🔔':i===2?'🔔':'📊';}
+    else{icon.textContent=i===1?'🔔':i===2?'🔔':'📊';}
+  });
+  [1,2].forEach(i=>document.getElementById('wl-'+i).classList.toggle('done',wzStep>i));
+  const back=document.getElementById('wz-back-btn');
+  const next=document.getElementById('wz-next-btn');
+  const save=document.getElementById('wz-save-btn');
+  back.style.display=wzStep>1?'block':'none';
+  save.style.display=wzStep===3?'block':'none';
+  next.style.display=wzStep<3?'block':'none';
+  if(wzStep===1){next.classList.add('enabled');next.disabled=false;}
+  else if(wzStep===2){next.classList.add('enabled');next.disabled=false;}
+  else{if(wzAlertType==='complex'){save.style.opacity='1';}else checkWzSaveReady();}
+  if(wzStep===3&&wzAlertType==='price') onWzCondChange();
+}
+
+function goWzStep(s){
+  if(s>wzStep) return; // нельзя прыгнуть вперёд
+  wzStep=s;
+  renderWzStep();
+}
+
+function wzNext(){
+  if(wzStep<3){wzStep++;renderWzStep();}
+}
+function wzBack(){
+  if(wzStep>1){wzStep--;renderWzStep();}
+}
+
+function onWzCondChange(){
+  const cond=document.getElementById('wz-cond').value;
+  const unit=document.getElementById('wz-price-unit');
+  const ph=document.getElementById('wz-price');
+  if(cond==='pump'||cond==='dump'){unit.textContent='%';ph.placeholder='напр. 3';}
+  else if(cond==='vol'){unit.textContent='$';ph.placeholder='напр. 1000000';}
+  else{unit.textContent='$';ph.placeholder='Введите цену';}
+  checkWzSaveReady();
+}
+
+function checkWzSaveReady(){
+  const sym=wzSymSel||(document.getElementById('wz-sym')?.value||'').trim().toUpperCase().replace(/USDT$/,'');
+  const val=document.getElementById('wz-price')?.value;
+  const ok=sym.length>0&&parseFloat(val)>0;
+  document.getElementById('wz-save-btn').style.opacity=ok?'1':'0.5';
+}
+
+// Autocomplete в шаге 3
+function onWzSymInput(){
+  const q=(document.getElementById('wz-sym').value||'').trim().toUpperCase();
+  wzSymSel='';wzSymIdx=-1;
+  const drop=document.getElementById('wz-sym-dropdown');
+  if(!q){drop.style.display='none';return;}
+  const matches=Object.values(coins)
+    .filter(c=>c.symbol.startsWith(q)||c.symbol.includes(q))
+    .sort((a,b)=>(a.symbol.startsWith(q)?-1:1)||(b.volume-a.volume))
+    .slice(0,10);
+  if(!matches.length){drop.style.display='none';return;}
+  drop.innerHTML=matches.map((c,i)=>`<div class="wz-sym-item" id="wsd-${i}" onclick="selectWzSym('${c.symbol}')">
+    <span class="wz-sym-name">${c.symbol}/USDT</span>
+    <span class="wz-sym-ex">Binance Futures</span>
+    <span class="wz-sym-price">$${fmtP(c.price)}</span>
+  </div>`).join('');
+  drop.style.display='block';
+}
+
+function onWzSymKey(e){
+  const items=document.querySelectorAll('.wz-sym-item');
+  if(e.key==='ArrowDown'){e.preventDefault();wzSymIdx=Math.min(wzSymIdx+1,items.length-1);items.forEach((it,i)=>it.classList.toggle('active',i===wzSymIdx));}
+  else if(e.key==='ArrowUp'){e.preventDefault();wzSymIdx=Math.max(wzSymIdx-1,0);items.forEach((it,i)=>it.classList.toggle('active',i===wzSymIdx));}
+  else if(e.key==='Enter'){e.preventDefault();if(wzSymIdx>=0&&items[wzSymIdx])items[wzSymIdx].click();else if(items.length>0)items[0].click();}
+  else if(e.key==='Escape'){document.getElementById('wz-sym-dropdown').style.display='none';}
+}
+
+function selectWzSym(sym){
+  wzSymSel=sym;
+  document.getElementById('wz-sym').value=sym+'/USDT';
+  document.getElementById('wz-sym-dropdown').style.display='none';
+  // Показать текущую цену
+  const c=coins[sym];
+  if(c) document.getElementById('wz-current-price').textContent=`Текущая цена: $${fmtP(c.price)}`;
+  // Предзаполнить цену если условие above/below
+  const cond=document.getElementById('wz-cond').value;
+  if((cond==='above'||cond==='below')&&c&&!document.getElementById('wz-price').value){
+    document.getElementById('wz-price').value=fmtP(c.price);
+  }
+  checkWzSaveReady();
+}
+
+// Complex alert scope
+let cxScope='all', cxSyms=[];
+function setCxScope(s){
+  cxScope=s;
+  document.getElementById('cxs-all').classList.toggle('on',s==='all');
+  document.getElementById('cxs-one').classList.toggle('on',s==='one');
+  document.getElementById('cx-sym-wrap').style.display=s==='one'?'block':'none';
+}
+function onCxSymInput(){
+  const q=(document.getElementById('cx-sym').value||'').trim().toUpperCase();
+  const drop=document.getElementById('cx-sym-dropdown');
+  if(!q){drop.style.display='none';return;}
+  const matches=Object.values(coins).filter(c=>c.symbol.startsWith(q)||c.symbol.includes(q)).slice(0,8);
+  if(!matches.length){drop.style.display='none';return;}
+  drop.innerHTML=matches.map(c=>`<div class="wz-sym-item" onclick="addCxSym('${c.symbol}')">
+    <span class="wz-sym-name">${c.symbol}/USDT</span>
+    <span class="wz-sym-price">$${fmtP(c.price)}</span>
+  </div>`).join('');
+  drop.style.display='block';
+}
+function addCxSym(sym){
+  if(!cxSyms.includes(sym)) cxSyms.push(sym);
+  document.getElementById('cx-sym').value='';
+  document.getElementById('cx-sym-dropdown').style.display='none';
+  renderCxTags();
+}
+function removeCxSym(sym){
+  cxSyms=cxSyms.filter(s=>s!==sym);
+  renderCxTags();
+}
+function renderCxTags(){
+  document.getElementById('cx-sym-tags').innerHTML=cxSyms.map(s=>
+    `<div class="cx-tag">${s}<span class="cx-tag-del" onclick="removeCxSym('${s}')">✕</span></div>`
+  ).join('');
+}
+function getCxParams(){
+  const g=id=>parseFloat(document.getElementById(id)?.value)||0;
+  const gs=id=>document.getElementById(id)?.value||'any';
+  return{
+    scope:cxScope,syms:[...cxSyms],
+    move1m:g('cx-move1m'),move1mDir:gs('cx-move1m-dir'),
+    vol1mUsd:g('cx-vol1m-usd'),
+    vol1mGrow:g('cx-vol1m-grow'),vol1mGrowDir:gs('cx-vol1m-grow-dir'),
+    trades1m:g('cx-trades1m'),
+    natr5m:g('cx-natr-5m'),natr5mDir:gs('cx-natr-5m-dir'),
+    natr15m:g('cx-natr-15m'),natr15mDir:gs('cx-natr-15m-dir'),
+    natr30m:g('cx-natr-30m'),natr30mDir:gs('cx-natr-30m-dir'),
+    natr1h:g('cx-natr-1h'),natr1hDir:gs('cx-natr-1h-dir'),
+    vol5m:g('cx-vol-5m'),vol15m:g('cx-vol-15m'),vol30m:g('cx-vol-30m'),
+    vol1h:g('cx-vol-1h'),vol4h:g('cx-vol-4h'),vol1d:g('cx-vol-1d'),
+    trades5m:g('cx-trades-5m'),trades15m:g('cx-trades-15m'),trades30m:g('cx-trades-30m'),
+    trades1h:g('cx-trades-1h'),trades4h:g('cx-trades-4h'),trades1d:g('cx-trades-1d'),
+  };
+}
+
+function wzSave(){
+  const sendTgChecked=document.getElementById('wz-send-tg')?.checked||document.getElementById('wz-send-both')?.checked;
+  const infinite=document.querySelector('input[name="wz-mode"][value="infinite"]')?.checked;
+  const repeatMin=parseInt(document.getElementById('wz-repeat')?.value)||5;
+
+  if(wzAlertType==='complex'){
+    const params=getCxParams();
+    const hasAny=Object.entries(params).some(([k,v])=>typeof v==='number'&&v>0);
+    if(!hasAny){alert('Заполните хотя бы один параметр');return;}
+    alerts.push({id:Date.now(),type:'complex',alertType:'complex',params,fired:false,
+      sendTg:sendTgChecked,infinite,cooldown:infinite?repeatMin*60000:300000,sym:'*',val:0});
+  } else {
+    const sym=wzSymSel||(document.getElementById('wz-sym')?.value||'').replace('/USDT','').trim().toUpperCase();
+    const type=document.getElementById('wz-cond').value;
+    const val=parseFloat(document.getElementById('wz-price').value);
+    if(!sym||isNaN(val)||val<=0){
+      document.getElementById('wz-price').style.borderColor='var(--red)';
+      setTimeout(()=>document.getElementById('wz-price').style.borderColor='',1500);return;
+    }
+    alerts.push({id:Date.now(),sym,type,val,fired:false,sendTg:sendTgChecked,infinite,cooldown:infinite?repeatMin*60000:300000});
+  }
+  localStorage.setItem('cs_alerts',JSON.stringify(alerts));
+  closeCreateAlert();
+  renderAlertsList();
+}
+
+// TG Settings
+function openTgSettings(){
+  document.getElementById('tg-modal').classList.add('open');
+}
+function closeTgSettings(){
+  document.getElementById('tg-modal').classList.remove('open');
+}
+async function testTg(){
+  if(!tgTok||!tgCid){alert('Введи токен и Chat ID');return;}
+  try{
+    const r=await fetch(`https://api.telegram.org/bot${tgTok}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:tgCid,text:'✅ CryptoScan подключён!'})});
+    const d=await r.json();
+    if(d.ok) document.getElementById('tgok2').style.display='block';
+    else alert('Ошибка: '+d.description);
+  }catch(e){alert('Ошибка соединения');}
+}
+
+// ── ALERTS LOGIC ───────────────────────────────────────────
+function condLabel(a){
+  const labels={pump:`▲ Рост ≥${a.val}%`,dump:`▼ Падение ≥${a.val}%`,vol:`📊 Объём ≥${fmtV(a.val)}`,above:`🔼 Цена выше $${fmtP(a.val)}`,below:`🔽 Цена ниже $${fmtP(a.val)}`};
+  return labels[a.type]||'';
+}
+function delAlert(id){
+  alerts=alerts.filter(a=>a.id!==id);
+  localStorage.setItem('cs_alerts',JSON.stringify(alerts));
+  renderAlertsList();
+}
+function checkAlerts(sym,pr,chg,vol){
+  alerts.forEach(a=>{
+    const k=a.id+'_'+sym;
+    const cooldown=a.cooldown||300000;
+    if(cd[k]&&Date.now()-cd[k]<cooldown)return;
+
+    let fire=false;
+
+    if(a.alertType==='complex'){
+      // Комплексный алерт — проверяем по параметрам
+      const p=a.params||{};
+      // Фильтр по монете
+      if(p.scope==='one'&&p.syms?.length>0&&!p.syms.includes(sym))return;
+      const c=coins[sym];if(!c)return;
+      // Объём 1м в USD
+      if(p.vol1mUsd>0&&vol<p.vol1mUsd)return;
+      // Движение 1м %
+      if(p.move1m>0){
+        if(Math.abs(chg)<p.move1m)return;
+        if(p.move1mDir==='up'&&chg<0)return;
+        if(p.move1mDir==='down'&&chg>0)return;
+      }
+      fire=true;
+    } else {
+      if(a.sym!==sym)return;
+      if(a.type==='pump'&&chg>=a.val)fire=true;
+      if(a.type==='dump'&&chg<=-a.val)fire=true;
+      if(a.type==='vol'&&vol>=a.val)fire=true;
+      if(a.type==='above'&&pr>=a.val)fire=true;
+      if(a.type==='below'&&pr<=a.val)fire=true;
+    }
+
+    if(fire){
+      cd[k]=Date.now();a.fired=true;
+      const cond=a.alertType==='complex'?'📊 Комплексный алерт':condLabel(a);
+      fireLog.unshift({sym,cond,chg,t:new Date().toTimeString().slice(0,8),firedAt:Date.now()});
+      if(fireLog.length>50)fireLog.pop();
+      sendTgAlert(sym,a,pr,chg,vol);
+      if(!a.infinite)a.firedAt=Date.now();
+      localStorage.setItem('cs_alerts',JSON.stringify(alerts));
+      setTimeout(()=>{a.fired=false;},cooldown);
+    }
+  });
+}
+async function sendTgAlert(sym,a,pr,chg,vol){
+  if(!tgTok||!tgCid)return;
+  const sign=chg>=0?'+':'';
+  const txt=`${condLabel(a)}\n*${sym}/USDT* — ${ex.toUpperCase()}\nЦена: \`$${fmtP(pr)}\` (${sign}${chg.toFixed(2)}%)\nОбъём 24h: \`${fmtV(vol)}\``;
+  try{await fetch(`https://api.telegram.org/bot${tgTok}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:tgCid,text:txt,parse_mode:'Markdown'})});}catch(e){}
+}
+
+
+// ── FILTER MODAL ───────────────────────────────────────────
+function openFilterModal(){
+  // Восстановить текущие значения
+  if(activeFilters.volMin) document.getElementById('f-vol-min').value=activeFilters.volMin;
+  if(activeFilters.volMax) document.getElementById('f-vol-max').value=activeFilters.volMax;
+  if(activeFilters.chgMin) document.getElementById('f-chg-min').value=activeFilters.chgMin;
+  if(activeFilters.chgMax) document.getElementById('f-chg-max').value=activeFilters.chgMax;
+  document.getElementById('filter-modal').classList.add('open');
+}
+function closeFilterModal(){
+  document.getElementById('filter-modal').classList.remove('open');
+}
+function setVolPreset(min,max){
+  document.getElementById('f-vol-min').value=min||'';
+  document.getElementById('f-vol-max').value=max||'';
+}
+function resetFilters(){
+  ['f-vol-min','f-vol-max','f-chg-min','f-chg-max',
+   'f-trades-1m-min','f-trades-1m-max','f-trades-5m-min','f-trades-5m-max',
+   'f-trades-15m-min','f-trades-15m-max','f-trades-30m-min','f-trades-30m-max',
+   'f-trades-1h-min','f-trades-1h-max'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.value='';
+  });
+  activeFilters={volMin:0,volMax:0,chgMin:0,chgMax:0,tradesFilters:{}};
+  saveSettings();
+  closeFilterModal();
+  applyFilters();
+}
+async function applyFilterModal(){
+  activeFilters.volMin=parseFloat(document.getElementById('f-vol-min').value)||0;
+  activeFilters.volMax=parseFloat(document.getElementById('f-vol-max').value)||0;
+  activeFilters.chgMin=parseFloat(document.getElementById('f-chg-min').value)||0;
+  activeFilters.chgMax=parseFloat(document.getElementById('f-chg-max').value)||0;
+
+  // Фильтр по сделкам — требует запроса к API
+  const tradesConfig={
+    '1m':{window:'f-trades-1m',period:'1m',limit:30},
+    '5m':{window:'f-trades-5m',period:'5m',limit:24},
+    '15m':{window:'f-trades-15m',period:'15m',limit:24},
+    '30m':{window:'f-trades-30m',period:'30m',limit:24},
+    '1h':{window:'f-trades-1h',period:'1h',limit:24},
+  };
+  activeFilters.tradesFilters={};
+  Object.entries(tradesConfig).forEach(([key,cfg])=>{
+    const min=parseFloat(document.getElementById(`f-trades-${key}-min`)?.value)||0;
+    const max=parseFloat(document.getElementById(`f-trades-${key}-max`)?.value)||0;
+    if(min>0||max>0) activeFilters.tradesFilters[key]={...cfg,min,max};
+  });
+
+  saveSettings();
+  closeFilterModal();
+
+  // Если есть фильтры по сделкам — проверяем асинхронно
+  if(Object.keys(activeFilters.tradesFilters).length>0){
+    await checkTradesFilter();
+  } else {
+    applyFilters();
+  }
+}
+
+// Проверка среднего кол-ва сделок через klines API
+async function checkTradesFilter(){
+  const f=activeFilters.tradesFilters;
+  const periodMap={'1m':'1m','5m':'5m','15m':'15m','30m':'30m','1h':'1h'};
+  const candidates=Object.values(coins).filter(c=>c.price>0).sort((a,b)=>b.volume-a.volume).slice(0,100);
+
+  // Берём первый активный фильтр для запроса
+  const firstKey=Object.keys(f)[0];
+  const cfg=f[firstKey];
+
+  const results=await Promise.all(candidates.map(async c=>{
+    try{
+      const r=await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${c.symbol}USDT&interval=${cfg.period}&limit=${cfg.limit}`);
+      if(!r.ok)return{sym:c.symbol,passes:false};
+      const klines=await r.json();
+      const avgTrades=klines.reduce((s,k)=>s+parseInt(k[8]||0),0)/klines.length;
+      const passes=(!cfg.min||avgTrades>=cfg.min)&&(!cfg.max||avgTrades<=cfg.max);
+      return{sym:c.symbol,passes};
+    }catch(e){return{sym:c.symbol,passes:false};}
+  }));
+
+  const passingSyms=new Set(results.filter(r=>r.passes).map(r=>r.sym));
+  // Перекрыть coins фильтром
+  const filtered=Object.values(coins).filter(c=>passingSyms.has(c.symbol));
+  gridSyms=filtered.slice(0,cols).map(c=>c.symbol);
+  renderedSyms=[];
+  renderGrid();
+}
+
+// ── FORMAT ─────────────────────────────────────────────────
+function fmtV(v){if(v>=1e9)return'$'+(v/1e9).toFixed(2)+'B';if(v>=1e6)return'$'+(v/1e6).toFixed(1)+'M';if(v>=1e3)return'$'+(v/1e3).toFixed(0)+'K';return'$0';}
+function fmtP(p){if(!p)return'0';if(p>=10000)return p.toLocaleString('en',{maximumFractionDigits:0});if(p>=1000)return p.toLocaleString('en',{minimumFractionDigits:1,maximumFractionDigits:1});if(p>=1)return p.toFixed(4);if(p>=0.001)return p.toFixed(5);return p.toFixed(8);}
+
+// ── KEYBOARD ───────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    closeChartModal();closeSearchModal();closeAlertsModal();closeFilterModal();
+  }
+  // Ctrl+K / Cmd+K → поиск
+  if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();openSearchModal();}
+  // / → поиск
+  if(e.key==='/'&&!['INPUT','TEXTAREA'].includes(document.activeElement.tagName)){e.preventDefault();openSearchModal();}
+});
+
+// ── START ──────────────────────────────────────────────────
+// init() запускается отсюда только если пароль уже был подтверждён в этой сессии
+// браузера (флаг window.csReadyToInit выставлен в pw-gate скрипте выше). Если
+// пароль ещё не введён, init() будет вызвана позже из checkPwGate() напрямую —
+// в этот момент функция уже точно определена, так что вызов безопасен.
+if(window.csReadyToInit) init();
+</script>
+</body>
+</html>
