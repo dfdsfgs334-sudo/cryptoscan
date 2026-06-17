@@ -316,12 +316,10 @@ async function checkPwGate(){
 document.getElementById('pw-input').addEventListener('keydown',e=>{
   if(e.key==='Enter') checkPwGate();
 });
-// Если пароль уже подтверждён в этой сессии браузера — не спрашивать заново.
-// init() ещё не определена на этом этапе (она в скрипте ниже), поэтому просто
-// выставляем флаг — конец основного скрипта проверит его и вызовет init() сам.
+// Если пароль уже подтверждён в этой сессии браузера — проверим позже,
+// в конце основного скрипта, когда DOM полностью загружен и .app элемент существует.
+// Здесь просто отмечаем флаг, чтобы основной скрипт мог его проверить.
 if(sessionStorage.getItem('cs_pw_ok')==='1'){
-  document.getElementById('pw-gate').style.display='none';
-  document.querySelector('.app').style.display='';
   window.csReadyToInit=true;
 }
 </script>
@@ -2260,12 +2258,19 @@ document.addEventListener('keydown',e=>{
   if(e.key==='/'&&!['INPUT','TEXTAREA'].includes(document.activeElement.tagName)){e.preventDefault();openSearchModal();}
 });
 
+
 // ── START ──────────────────────────────────────────────────
-// init() запускается отсюда только если пароль уже был подтверждён в этой сессии
-// браузера (флаг window.csReadyToInit выставлен в pw-gate скрипте выше). Если
-// пароль ещё не введён, init() будет вызвана позже из checkPwGate() напрямую —
-// в этот момент функция уже точно определена, так что вызов безопасен.
-if(window.csReadyToInit) init();
+// Если пароль уже подтверждён в этой сессии браузера (flag window.csReadyToInit),
+// скрывем гейт, показываем приложение и инициализируем его. Это выполняется в конце
+// основного скрипта, когда все элементы DOM точно существуют и init() определена.
+if(window.csReadyToInit){
+  const pwGate=document.getElementById('pw-gate');
+  const app=document.querySelector('.app');
+  if(pwGate) pwGate.style.display='none';
+  if(app) app.style.display='';
+  if(typeof init==='function') init();
+}
 </script>
 </body>
 </html>
+
