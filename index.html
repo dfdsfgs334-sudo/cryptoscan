@@ -307,7 +307,7 @@ async function checkPwGate(){
   if(hash===PW_HASH){
     sessionStorage.setItem('cs_pw_ok','1');
     document.getElementById('pw-gate').style.display='none';
-    document.querySelector('.app').style.display='';
+    document.querySelector('.app').style.display='flex';
     if(typeof init==='function') init(); else window.csReadyToInit=true;
   } else {
     document.getElementById('pw-err').textContent='Неверный пароль';
@@ -2267,7 +2267,7 @@ if(window.csReadyToInit){
   const pwGate=document.getElementById('pw-gate');
   const app=document.querySelector('.app');
   if(pwGate) pwGate.style.display='none';
-  if(app) app.style.display='';
+  if(app) app.style.display='flex';
   if(typeof init==='function') init();
 }
 </script>
