@@ -333,7 +333,6 @@ if(sessionStorage.getItem('cs_pw_ok')==='1'){
     <button class="exch-btn on" onclick="setEx('binance',this)">Binance</button>
     <button class="exch-btn" onclick="setEx('bybit',this)">ByBit</button>
     <button class="exch-btn" onclick="setEx('okx',this)">OKX</button>
-    <button class="exch-btn" onclick="setEx('mexc',this)" title="MEXC работает через сторонний CORS-прокси (allorigins.win) — может быть медленнее или временно недоступен">MEXC</button>
   </div>
 
   <!-- Только Фьючерсы -->
@@ -861,7 +860,7 @@ function loadSettings(){
     } else if(s.sortMode){
       sortMode=s.sortMode;
     }
-    if(s.ex&&s.ex!=='gate') ex=s.ex; // 'gate' больше не поддерживается (CORS-блокировка биржи), откатываемся на дефолт
+    if(s.ex&&s.ex!=='gate'&&s.ex!=='mexc') ex=s.ex;
     if(s.tf) tf=s.tf;
     if(s.cols) cols=s.cols;
     if(s.activeFilters) activeFilters=s.activeFilters;
@@ -1032,7 +1031,6 @@ async function fetchData(){
   try{
     if(ex==='bybit') await fetchBybit();
     else if(ex==='okx') await fetchOkx();
-    else if(ex==='mexc') await fetchMexc();
     else await fetchBinance();
     if(Object.keys(coins).length===0){
       // Биржа ответила, но монет не нашлось — вероятно изменился формат ответа API
@@ -1051,9 +1049,7 @@ async function fetchData(){
     } else if(renderedSyms.length===0){
       // В burst/plateau режимах не показываем промежуточный список ликвидных монет
       // (они не соответствуют этим режимам и вызывают мерцание), но показываем индикатор
-      const loadMsg=ex==='mexc'&&(sortMode==='plateau')
-        ?'Анализ объёмов MEXC через прокси… (~15 сек)'
-        :'Анализ объёмов…';
+      const loadMsg='Анализ объёмов…';
       document.getElementById('grid-area').innerHTML=`<div class="grid-loading">${loadMsg}</div>`;
     }
     // После получения базовых данных — подгружаем рендж (% за выбранный период)
@@ -1120,44 +1116,6 @@ async function fetchOkx(){
     coins[sym]={symbol:sym,price:pr,change:chg,change24h:chg,volume:vol,count:0,signal:Math.abs(chg)>=2.5&&vol>=500000?(chg>0?'pump':'dump'):'none'};
   });
 }
-// MEXC API не отдаёт CORS-заголовки для браузерных запросов — используем прокси.
-// История: allorigins.win — нестабилен (429, HTTP2 ошибки); corsproxy.io — даёт 400
-// для GitHub.io (изменили тарифную политику, бесплатно теперь только localhost);
-// cors.lol — простой формат без encodeURIComponent, без ограничений на origin, бесплатный.
-function mexcProxyUrl(targetUrl){
-  return `https://api.cors.lol/url=${targetUrl}`;
-}
-async function fetchMexc(){
-  // Бесплатный прокси allorigins.win известен своей нестабильностью (часто отвечает
-  // ошибкой даже когда сам MEXC доступен) — делаем до 3 попыток с паузой перед тем
-  // как сдаться и показать ошибку пользователю.
-  let lastErr=null;
-  for(let attempt=1;attempt<=3;attempt++){
-    try{
-      const r=await fetchWithTimeout(mexcProxyUrl('https://api.mexc.com/api/v1/contract/ticker'),10000);
-      if(!r)throw new Error('запрос не дошёл до прокси (таймаут или сетевая ошибка)');
-      if(!r.ok)throw new Error(`прокси ответил с ошибкой ${r.status} ${r.statusText||''}`.trim());
-      const json=await r.json();
-      const list=Array.isArray(json.data)?json.data:(json.data?[json.data]:[]);
-      if(list.length===0)throw new Error('прокси ответил, но данных по монетам нет');
-      list.forEach(t=>{
-        if(!t.symbol?.endsWith('_USDT'))return;
-        const sym=t.symbol.replace('_USDT','');
-        const pr=parseFloat(t.lastPrice||0);
-        // riseFallRate — доля изменения (например 0.014 = +1.4%), переводим в %
-        const chg=parseFloat(t.riseFallRate||0)*100;
-        // amount24 — суточный оборот в валюте котировки (USDT), это и есть объём в $
-        const vol=parseFloat(t.amount24||0);
-        coins[sym]={symbol:sym,price:pr,change:chg,change24h:chg,volume:vol,count:0,signal:Math.abs(chg)>=2.5&&vol>=500000?(chg>0?'pump':'dump'):'none'};
-      });
-      return; // успех — выходим без ошибки
-    }catch(e){
-      lastErr=e;
-      if(attempt<3) await new Promise(res=>setTimeout(res,1000*attempt));
-    }
-  }
-  throw new Error(`MEXC: не удалось получить данные после 3 попыток (${lastErr?.message||'неизвестная ошибка'})`);
-}
 // ── РЕНДЖ: % изменения цены за выбранный период (не 24h) ───
 // Кэш сырых klines по символам — позволяет переключаться между "Рендж за 5м" и
 // "Рендж за 1ч" мгновенно, без повторного запроса к бирже (оба периода укладываются
@@ -1187,9 +1145,6 @@ function applyRangeFromCache(){
       } else if(ex==='okx'){
         const list=data.data||[];if(list.length<2)return;
         closeNow=parseFloat(list[0][4]);closePast=parseFloat(list[Math.min(minutes,list.length-1)][4]);
-      } else if(ex==='mexc'){
-        const closes=data.data?.close||[];if(closes.length<2)return;
-        closeNow=closes[closes.length-1];closePast=closes[Math.max(0,closes.length-1-minutes)];
       } else {
         if(data.length<2)return;
         closeNow=parseFloat(data[data.length-1][4]);closePast=parseFloat(data[Math.max(0,data.length-1-minutes)][4]);
@@ -1213,7 +1168,7 @@ async function applyRangeToCoins(){
     .sort((a,b)=>b.volume-a.volume).slice(0,150);
   const limit=MAX_RANGE_MIN+2; // всегда качаем максимум, чтобы переключение периодов было бесплатным
   // Бесплатный CORS-прокси для MEXC — маленькие батчи чтобы не получить 429
-  const batchSize=ex==='mexc'?5:75;
+  const batchSize=75;
   // TTL-кэш: пропускаем монеты, klines которых свежее KLINES_CACHE_TTL_MS (1 минута).
   // Это главная оптимизация скорости: при переключении сортировок и при регулярном
   // обновлении цикла не делаем лишние сетевые запросы для данных, которые ещё актуальны.
@@ -1223,26 +1178,17 @@ async function applyRangeToCoins(){
     const batch=candidatesToFetch.slice(i,i+batchSize);
     await Promise.all(batch.map(async c=>{
       try{
-        // MEXC klines используют другой протокол запроса: interval=Min1 + start/end
-        // в Unix-секундах (не limit), поэтому считаем временное окно отдельно
-        const nowSec=Math.floor(Date.now()/1000);
-        const startSec=nowSec-limit*60;
         const url=ex==='bybit'
           ?`https://api.bybit.com/v5/market/kline?category=linear&symbol=${c.symbol}USDT&interval=1&limit=${limit}`
           :ex==='okx'
           ?`https://www.okx.com/api/v5/market/candles?instId=${c.symbol}-USDT-SWAP&bar=1m&limit=${limit}`
-          :ex==='mexc'
-          ?mexcProxyUrl(`https://api.mexc.com/api/v1/contract/kline/${c.symbol}_USDT?interval=Min1&start=${startSec}&end=${nowSec}`)
           :`https://fapi.binance.com/fapi/v1/klines?symbol=${c.symbol}USDT&interval=1m&limit=${limit}`;
-        // Через CORS-прокси запросы идут заметно медленнее, даём больше времени на ответ
-        const r=await fetchWithTimeout(url,ex==='mexc'?8000:4000);
+        const r=await fetchWithTimeout(url,4000);
         if(!r||!r.ok)return;
         const data=await r.json();
         klinesSet(c.symbol,data);
       }catch(e){/* пропускаем монету при ошибке */}
     }));
-    // Пауза между батчами для MEXC — corsproxy.io имеет rate limit, 1.5с между батчами
-    if(ex==='mexc') await new Promise(res=>setTimeout(res,1500));
   }
 
   // Считаем рендж% для нужного периода из кэша (свежего или только что обновлённого)
@@ -1262,15 +1208,7 @@ async function applyRangeToCoins(){
         if(list.length<2)return;
         closeNow=parseFloat(list[0][4]);
         const idx=Math.min(minutes,list.length-1);
-        closePast=parseFloat(list[idx][4]);
-      } else if(ex==='mexc'){
-        // mexc kline: data.data.close — массив цен закрытия по возрастанию времени
-        const closes=data.data?.close||[];
-        if(closes.length<2)return;
-        closeNow=closes[closes.length-1];
-        const idx=Math.max(0,closes.length-1-minutes);
-        closePast=closes[idx];
-      } else {
+        closePast=parseFloat(list[idx][4]); } else {
         if(data.length<2)return;
         closeNow=parseFloat(data[data.length-1][4]);
         const idx=Math.max(0,data.length-1-minutes);
@@ -1290,7 +1228,7 @@ async function applyRangeToCoins(){
 const BURST_WINDOW_MIN=30, BURST_MIN_CANDLES=10, BURST_THRESHOLD_USD=1000000;
 // Минимальное движение цены за 24ч для попадания в режим "Объём в $"
 // Монеты ниже порога считаются "шумом" без направленного импульса
-const BURST_MIN_CHANGE24H_PCT=5;
+const BURST_MIN_CHANGE24H_PCT=10;
 // Тяжеловесы (BTC, ETH, SOL и т.п.) почти всегда держат объём ≥$1M на свечу — это их
 // обычное фоновое состояние, а не всплеск интереса. Если в широком окне (60 минут)
 // доля таких свечей выше HEAVYWEIGHT_RATIO — считаем это нормой монеты и исключаем
@@ -1513,16 +1451,11 @@ async function computePlateauStates(){
   try{
     // Только низколиквидные монеты — суточный объём ≤$300K (противоположный фильтр
     // тому, что используется в остальных режимах, где нужны ликвидные монеты)
-    // Для MEXC жёстко ограничиваем число кандидатов — прокси (corsproxy.io) даёт 429
-    // при слишком большом числе запросов. Берём топ-25 по объёму среди низколиквидных.
-    // Для других бирж ограничение мягче — у них прямой API без прокси-посредника.
-    const maxCandidates=ex==='mexc'?25:150;
     const candidates=Object.values(coins)
       .filter(c=>c.price>0&&c.volume>0&&c.volume<=PLATEAU_MAX_24H_VOLUME)
       .sort((a,b)=>b.volume-a.volume)
-      .slice(0,maxCandidates);
-    const batchSize=ex==='mexc'?3:75;
-    const mexcBatchDelay=ex==='mexc'?1500:0;
+      .slice(0,150);
+    const batchSize=75;
     const limit=MAX_RANGE_MIN+2;
     const candidatesToFetch=candidates.filter(c=>klinesStale(c.symbol));
 
@@ -1530,21 +1463,16 @@ async function computePlateauStates(){
       const batch=candidatesToFetch.slice(i,i+batchSize);
       await Promise.all(batch.map(async c=>{
         try{
-          const nowSec=Math.floor(Date.now()/1000);
-          const startSec=nowSec-limit*60;
           const url=ex==='bybit'
             ?`https://api.bybit.com/v5/market/kline?category=linear&symbol=${c.symbol}USDT&interval=1&limit=${limit}`
             :ex==='okx'
             ?`https://www.okx.com/api/v5/market/candles?instId=${c.symbol}-USDT-SWAP&bar=1m&limit=${limit}`
-            :ex==='mexc'
-            ?mexcProxyUrl(`https://api.mexc.com/api/v1/contract/kline/${c.symbol}_USDT?interval=Min1&start=${startSec}&end=${nowSec}`)
             :`https://fapi.binance.com/fapi/v1/klines?symbol=${c.symbol}USDT&interval=1m&limit=${limit}`;
-          const r=await fetchWithTimeout(url,ex==='mexc'?8000:4000);
+          const r=await fetchWithTimeout(url,4000);
           if(!r||!r.ok)return;
           klinesSet(c.symbol,await r.json());
         }catch(e){/* пропускаем монету при ошибке сети */}
       }));
-      if(mexcBatchDelay>0) await new Promise(res=>setTimeout(res,mexcBatchDelay));
     }
 
     candidates.forEach(c=>{
@@ -1559,9 +1487,6 @@ async function computePlateauStates(){
         } else if(ex==='okx'){
           const list=data.data||[];
           vols=list.map(k=>parseFloat(k[7]||k[6]||0)).reverse();
-        } else if(ex==='mexc'){
-          // mexc kline: amount — оборот в валюте по каждой свече, уже по возрастанию времени
-          vols=(data.data?.amount||[]).map(v=>parseFloat(v||0));
         } else {
           vols=(data||[]).map(k=>parseFloat(k[7]||0));
         }
@@ -1646,7 +1571,7 @@ function applyFilters(){
 }
 
 function tvSym(sym){
-  const m={binance:`BINANCE:${sym}USDT.P`,bybit:`BYBIT:${sym}USDT.P`,okx:`OKX:${sym}USDT.P`,mexc:`MEXC:${sym}USDT.P`};
+  const m={binance:`BINANCE:${sym}USDT.P`,bybit:`BYBIT:${sym}USDT.P`,okx:`OKX:${sym}USDT.P`};
   return m[ex]||`BINANCE:${sym}USDT.P`;
 }
 function tvUrl(sym,interval,fullTools=false){
