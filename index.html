@@ -1032,8 +1032,13 @@ async function fetchData(){
     }
     setSt(true);
     // Мгновенный промежуточный рендер по объёму 24ч, пока рендж считается в фоне —
-    // так сетка не остаётся пустой на несколько секунд при первой загрузке
-    if(renderedSyms.length===0) renderByVolumeFallback();
+    // так сетка не остаётся пустой на несколько секунд при первой загрузке.
+    // НО: для burst и plateau режимов этот промежуточный рендер вреден — он показывает
+    // ликвидные монеты по объёму 24ч (любые), которые не должны быть в этих режимах
+    // вообще, и они потом "мерцают" (появляются и тут же исчезают при burst-расчёте).
+    // В этих режимах лучше подождать реального расчёта и показать "Загрузка..." вместо
+    // промежуточного неправильного набора монет.
+    if(renderedSyms.length===0&&sortMode!=='burst'&&sortMode!=='plateau') renderByVolumeFallback();
     // После получения базовых данных — подгружаем рендж (% за выбранный период)
     // forceRefetch=true: это регулярный цикл обновления, нужны свежие klines
     // (в отличие от switchSortModeFast, где скорость важнее свежести при простом переключении)
@@ -1075,7 +1080,7 @@ async function fetchBinance(){
   (await r.json()).forEach(t=>{
     if(!t.symbol?.endsWith('USDT'))return;
     const sym=t.symbol.replace('USDT',''),pr=parseFloat(t.lastPrice),chg=parseFloat(t.priceChangePercent),vol=parseFloat(t.quoteVolume),cnt=parseFloat(t.count||0);
-    coins[sym]={symbol:sym,price:pr,change:chg,volume:vol,count:cnt,signal:Math.abs(chg)>=2.5&&vol>=500000?(chg>0?'pump':'dump'):'none'};
+    coins[sym]={symbol:sym,price:pr,change:chg,change24h:chg,volume:vol,count:cnt,signal:Math.abs(chg)>=2.5&&vol>=500000?(chg>0?'pump':'dump'):'none'};
   });
 }
 async function fetchBybit(){
@@ -1084,7 +1089,7 @@ async function fetchBybit(){
   (await r.json()).result?.list?.forEach(t=>{
     if(!t.symbol?.endsWith('USDT'))return;
     const sym=t.symbol.replace('USDT',''),pr=parseFloat(t.lastPrice||0),chg=parseFloat(t.price24hPcnt||0)*100,vol=parseFloat(t.turnover24h||0);
-    coins[sym]={symbol:sym,price:pr,change:chg,volume:vol,count:0,signal:Math.abs(chg)>=2.5&&vol>=500000?(chg>0?'pump':'dump'):'none'};
+    coins[sym]={symbol:sym,price:pr,change:chg,change24h:chg,volume:vol,count:0,signal:Math.abs(chg)>=2.5&&vol>=500000?(chg>0?'pump':'dump'):'none'};
   });
 }
 async function fetchOkx(){
@@ -1097,21 +1102,17 @@ async function fetchOkx(){
     const pr=parseFloat(t.last||0),open=parseFloat(t.open24h||0);
     const chg=open>0?((pr-open)/open*100):0;
     const vol=parseFloat(t.volCcy24h||0);
-    coins[sym]={symbol:sym,price:pr,change:chg,volume:vol,count:0,signal:Math.abs(chg)>=2.5&&vol>=500000?(chg>0?'pump':'dump'):'none'};
+    coins[sym]={symbol:sym,price:pr,change:chg,change24h:chg,volume:vol,count:0,signal:Math.abs(chg)>=2.5&&vol>=500000?(chg>0?'pump':'dump'):'none'};
   });
 }
-// MEXC API не отдаёт CORS-заголовки для прямых браузерных запросов (подтверждено:
-// "No Access-Control-Allow-Origin header"), поэтому используем бесплатный публичный
-// CORS-прокси allorigins.win как обходной путь. Он добавляет нужные заголовки сам.
-// (Пробовали corsproxy.io — он надёжнее по инфраструктуре, но бесплатный тариф
-// разрешает только определённые origin'ы — localhost, известные онлайн-IDE и т.п. —
-// и блокирует запросы с origin "null", который получается при открытии файла
-// напрямую с диска через file://, что и есть способ запуска этого скринера.
-// allorigins.win такого ограничения не имеет, поэтому возвращаемся к нему, несмотря
-// на его собственную нестабильность — 429 Too Many Requests и периодические сбои
-// инфраструктуры случаются, но он хотя бы технически совместим с file://.)
+// MEXC API не отдаёт CORS-заголовки для прямых браузерных запросов. Ранее использовали
+// allorigins.win, но он оказался нестабильным (429, ERR_HTTP2_PROTOCOL_ERROR, периодические
+// сбои CORS-заголовков). Пробовали corsproxy.io — он надёжнее (CDN, используется Uniswap
+// и Figma), но блокировал запросы с origin "null" (открытие через file://).
+// Теперь скринер работает на GitHub Pages (https://), поэтому origin настоящий и
+// corsproxy.io нас больше не блокирует — переключаемся обратно на него.
 function mexcProxyUrl(targetUrl){
-  return `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+  return `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
 }
 async function fetchMexc(){
   // Бесплатный прокси allorigins.win известен своей нестабильностью (часто отвечает
@@ -1134,7 +1135,7 @@ async function fetchMexc(){
         const chg=parseFloat(t.riseFallRate||0)*100;
         // amount24 — суточный оборот в валюте котировки (USDT), это и есть объём в $
         const vol=parseFloat(t.amount24||0);
-        coins[sym]={symbol:sym,price:pr,change:chg,volume:vol,count:0,signal:Math.abs(chg)>=2.5&&vol>=500000?(chg>0?'pump':'dump'):'none'};
+        coins[sym]={symbol:sym,price:pr,change:chg,change24h:chg,volume:vol,count:0,signal:Math.abs(chg)>=2.5&&vol>=500000?(chg>0?'pump':'dump'):'none'};
       });
       return; // успех — выходим без ошибки
     }catch(e){
@@ -1316,7 +1317,14 @@ async function computeBurstStates(){
       const bgRatio=bgSlice.length>0?bgHighCount/bgSlice.length:0;
       const isHeavyweight=bgRatio>=HEAVYWEIGHT_RATIO;
 
-      const isBurstNow=burstCount>=BURST_MIN_CANDLES&&!isHeavyweight;
+      // Фильтр по движению за 24ч: всплеск объёма интересен только если монета уже
+      // показывает значительное движение — иначе это "шум" без направленного импульса.
+      // Используем change24h (сохранённое из тикера), а не c.change которое могло быть
+      // перезаписано ренджем за выбранный период в applyRangeToCoins.
+      const change24h=coins[c.symbol]?.change24h??coins[c.symbol]?.change??0;
+      const hasSignificantMove=Math.abs(change24h)>=10;
+
+      const isBurstNow=burstCount>=BURST_MIN_CANDLES&&!isHeavyweight&&hasSignificantMove;
       if(coins[c.symbol]){
         coins[c.symbol].burstCount=burstCount;
         coins[c.symbol].isBurst=isBurstNow;
