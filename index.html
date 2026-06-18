@@ -831,6 +831,9 @@ if(sessionStorage.getItem('cs_pw_ok')==='1'){
 // ── STATE ──────────────────────────────────────────────────
 let coins={}, ex='binance', tf='1m', cols=16;
 let alerts=[], fireLog=[], cd={}, tgTok='', tgCid='';
+// Символы которые есть на Binance, ByBit или OKX — используется для фильтрации
+// уникальных MEXC монет в режимах "Плато" и "Активность"
+const knownOnMajorExchanges=new Set();
 let refreshTimer=null, gridSyms=[], renderedSyms=[];
 let alertsTab='active';
 let searchIdx=-1;
@@ -1027,7 +1030,16 @@ async function fetchWithTimeout(url,ms){
 }
 function getMs(){return{'1m':20000,'3m':22000,'5m':25000,'15m':30000,'30m':45000,'1h':60000,'4h':120000,'1d':180000}[tf]||20000;}
 let fetchInProgress=false;
-function startFetch(){if(refreshTimer)clearInterval(refreshTimer);fetchData();refreshTimer=setInterval(fetchData,getMs());}
+function startFetch(){
+  if(refreshTimer)clearInterval(refreshTimer);
+  // Если стартуем на MEXC и список крупных бирж ещё не загружен — подгружаем в фоне
+  // чтобы фильтр "только уникальные MEXC монеты" сразу работал корректно
+  if(ex==='mexc'&&knownOnMajorExchanges.size===0){
+    fetchBinance().catch(()=>{});
+  }
+  fetchData();
+  refreshTimer=setInterval(fetchData,getMs());
+}
 
 async function fetchData(){
   if(fetchInProgress)return; // не запускаем новый цикл если предыдущий ещё не завершился
@@ -1099,6 +1111,7 @@ async function fetchBinance(){
     if(!t.symbol?.endsWith('USDT'))return;
     const sym=t.symbol.replace('USDT',''),pr=parseFloat(t.lastPrice),chg=parseFloat(t.priceChangePercent),vol=parseFloat(t.quoteVolume),cnt=parseFloat(t.count||0);
     coins[sym]={symbol:sym,price:pr,change:chg,change24h:chg,volume:vol,count:cnt,signal:Math.abs(chg)>=2.5&&vol>=500000?(chg>0?'pump':'dump'):'none'};
+    knownOnMajorExchanges.add(sym);
   });
 }
 async function fetchBybit(){
@@ -1108,6 +1121,7 @@ async function fetchBybit(){
     if(!t.symbol?.endsWith('USDT'))return;
     const sym=t.symbol.replace('USDT',''),pr=parseFloat(t.lastPrice||0),chg=parseFloat(t.price24hPcnt||0)*100,vol=parseFloat(t.turnover24h||0);
     coins[sym]={symbol:sym,price:pr,change:chg,change24h:chg,volume:vol,count:0,signal:Math.abs(chg)>=2.5&&vol>=500000?(chg>0?'pump':'dump'):'none'};
+    knownOnMajorExchanges.add(sym);
   });
 }
 async function fetchOkx(){
@@ -1121,6 +1135,7 @@ async function fetchOkx(){
     const chg=open>0?((pr-open)/open*100):0;
     const vol=parseFloat(t.volCcy24h||0);
     coins[sym]={symbol:sym,price:pr,change:chg,change24h:chg,volume:vol,count:0,signal:Math.abs(chg)>=2.5&&vol>=500000?(chg>0?'pump':'dump'):'none'};
+    knownOnMajorExchanges.add(sym);
   });
 }
 async function fetchMexc(){
@@ -1492,7 +1507,13 @@ async function computePlateauStates(){
     // Только низколиквидные монеты — суточный объём ≤$300K (противоположный фильтр
     // тому, что используется в остальных режимах, где нужны ликвидные монеты)
     const candidates=Object.values(coins)
-      .filter(c=>c.price>0&&c.volume>0&&c.volume<=PLATEAU_MAX_24H_VOLUME)
+      .filter(c=>
+        c.price>0 &&
+        c.volume>0 &&
+        c.volume<=PLATEAU_MAX_24H_VOLUME &&
+        // На MEXC показываем только монеты которых нет на Binance/ByBit/OKX
+        (ex!=='mexc'||!knownOnMajorExchanges.has(c.symbol))
+      )
       .sort((a,b)=>b.volume-a.volume)
       .slice(0,150);
     const batchSize=75;
@@ -1594,7 +1615,9 @@ function computeActivityScores(){
       c.price>0 &&
       c.volume>0 &&
       c.volume<=ACTIVITY_MAX_VOL24H &&
-      Math.abs(c.change24h??c.change??0)>=ACTIVITY_MIN_CHANGE
+      Math.abs(c.change24h??c.change??0)>=ACTIVITY_MIN_CHANGE &&
+      // На MEXC показываем только монеты которых нет на Binance/ByBit/OKX
+      (ex!=='mexc'||!knownOnMajorExchanges.has(c.symbol))
     )
     .map(c=>{
       const chg=Math.abs(c.change24h??c.change??0);
