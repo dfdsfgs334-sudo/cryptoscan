@@ -991,21 +991,22 @@ async function switchSortModeFast(){
   try{
     if(sortMode==='burst'){
       await checkVolumeBursts();
+      refreshAllCellCharts();
     } else if(sortMode==='plateau'){
       await checkPlateau();
+      refreshAllCellCharts();
     } else if(sortMode==='activity'){
-      checkActivity(); // синхронный — не требует klines, работает на данных тикера
+      checkActivity();
+      refreshAllCellCharts();
     } else {
-      // Сначала мгновенно показываем результат из текущего кэша (даже если он чуть устарел) —
-      // пользователь видит правильные монеты почти сразу, без паузы на сетевые запросы.
-      // Потом в фоне обновляем устаревшие klines и тихо пересчитываем рендж.
       applyRangeFromCache();
       Object.values(coins).forEach(c=>checkAlerts(c.symbol,c.price,c.change,c.volume));
       applyFilters();
-      // Фоновое обновление: не ждём его завершения (нет await), не блокируем UI
+      refreshAllCellCharts();
       applyRangeToCoins().then(()=>{
         Object.values(coins).forEach(c=>checkAlerts(c.symbol,c.price,c.change,c.volume));
         applyFilters();
+        refreshAllCellCharts();
       });
     }
   }finally{
@@ -1086,16 +1087,17 @@ async function fetchData(){
     Object.values(coins).forEach(c=>checkAlerts(c.symbol,c.price,c.change,c.volume));
     if(sortMode==='burst'){
       await checkVolumeBursts();
+      refreshAllCellCharts();
     } else if(sortMode==='plateau'){
       await checkPlateau();
+      refreshAllCellCharts();
     } else if(sortMode==='activity'){
       checkActivity();
+      refreshAllCellCharts();
     } else {
-      // Режим "Объём в $" не открыт на экране, но всплески всё равно считаем в фоне —
-      // это нужно, чтобы Telegram-алерт на новый всплеск приходил независимо от того,
-      // какой режим сортировки сейчас отображается
       computeBurstStates();
       applyFilters();
+      refreshAllCellCharts();
     }
   }catch(e){
     console.error('fetchData error:',e);
@@ -1809,9 +1811,8 @@ function renderGrid(){
       cell.querySelector('.cell-bar').addEventListener('click',()=>openChartModal(sym));
       attachCellClickOverlay(cell,sym);
       area.appendChild(cell);
-      // Рисуем LWC-график сразу — данные из klinesCache, без сетевых запросов
-      setTimeout(()=>renderCellChart(sym),idx*50);
     });
+    // LWC-графики рисуются в refreshAllCellCharts() после загрузки klines
   } else {
     // Набор тот же — обновляем порядок отображения (без пересоздания iframe) и цифры
     renderedSyms=[...gridSyms];
