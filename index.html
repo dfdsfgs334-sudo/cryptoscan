@@ -1120,14 +1120,12 @@ async function fetchOkx(){
     coins[sym]={symbol:sym,price:pr,change:chg,change24h:chg,volume:vol,count:0,signal:Math.abs(chg)>=2.5&&vol>=500000?(chg>0?'pump':'dump'):'none'};
   });
 }
-// MEXC API не отдаёт CORS-заголовки для прямых браузерных запросов. Ранее использовали
-// allorigins.win, но он оказался нестабильным (429, ERR_HTTP2_PROTOCOL_ERROR, периодические
-// сбои CORS-заголовков). Пробовали corsproxy.io — он надёжнее (CDN, используется Uniswap
-// и Figma), но блокировал запросы с origin "null" (открытие через file://).
-// Теперь скринер работает на GitHub Pages (https://), поэтому origin настоящий и
-// corsproxy.io нас больше не блокирует — переключаемся обратно на него.
+// MEXC API не отдаёт CORS-заголовки для браузерных запросов — используем прокси.
+// История: allorigins.win — нестабилен (429, HTTP2 ошибки); corsproxy.io — даёт 400
+// для GitHub.io (изменили тарифную политику, бесплатно теперь только localhost);
+// cors.lol — простой формат без encodeURIComponent, без ограничений на origin, бесплатный.
 function mexcProxyUrl(targetUrl){
-  return `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
+  return `https://api.cors.lol/url=${targetUrl}`;
 }
 async function fetchMexc(){
   // Бесплатный прокси allorigins.win известен своей нестабильностью (часто отвечает
