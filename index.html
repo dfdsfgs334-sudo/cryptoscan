@@ -1033,9 +1033,12 @@ let fetchInProgress=false;
 function startFetch(){
   if(refreshTimer)clearInterval(refreshTimer);
   // Если стартуем на MEXC и список крупных бирж ещё не загружен — подгружаем в фоне
-  // чтобы фильтр "только уникальные MEXC монеты" сразу работал корректно
+  // только тикер Binance (без coins) чтобы заполнить knownOnMajorExchanges
   if(ex==='mexc'&&knownOnMajorExchanges.size===0){
-    fetchBinance().catch(()=>{});
+    fetchWithTimeout('https://fapi.binance.com/fapi/v1/ticker/24hr',8000)
+      .then(r=>r&&r.ok?r.json():null)
+      .then(data=>{if(data)data.forEach(t=>{if(t.symbol?.endsWith('USDT'))knownOnMajorExchanges.add(t.symbol.replace('USDT',''));});})
+      .catch(()=>{});
   }
   fetchData();
   refreshTimer=setInterval(fetchData,getMs());
