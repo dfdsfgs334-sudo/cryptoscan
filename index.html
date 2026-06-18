@@ -1046,7 +1046,13 @@ async function fetchData(){
     // вообще, и они потом "мерцают" (появляются и тут же исчезают при burst-расчёте).
     // В этих режимах лучше подождать реального расчёта и показать "Загрузка..." вместо
     // промежуточного неправильного набора монет.
-    if(renderedSyms.length===0&&sortMode!=='burst'&&sortMode!=='plateau') renderByVolumeFallback();
+    if(renderedSyms.length===0&&sortMode!=='burst'&&sortMode!=='plateau'){
+      renderByVolumeFallback();
+    } else if(renderedSyms.length===0){
+      // В burst/plateau режимах не показываем промежуточный список ликвидных монет
+      // (они не соответствуют этим режимам и вызывают мерцание), но показываем индикатор
+      document.getElementById('grid-area').innerHTML='<div class="grid-loading">Анализ объёмов…</div>';
+    }
     // После получения базовых данных — подгружаем рендж (% за выбранный период)
     await applyRangeToCoins();
     // Проверяем алерты по финальным данным (с учётом ренджа)
@@ -1234,8 +1240,8 @@ async function applyRangeToCoins(){
         klinesSet(c.symbol,data);
       }catch(e){/* пропускаем монету при ошибке */}
     }));
-    // Пауза между батчами для MEXC — иначе бесплатный прокси быстро отдаёт 429
-    if(ex==='mexc') await new Promise(res=>setTimeout(res,800));
+    // Пауза между батчами для MEXC — corsproxy.io имеет rate limit, 1.5с между батчами
+    if(ex==='mexc') await new Promise(res=>setTimeout(res,1500));
   }
 
   // Считаем рендж% для нужного периода из кэша (свежего или только что обновлённого)
@@ -1281,6 +1287,9 @@ async function applyRangeToCoins(){
 
 // ── ВСПЛЕСКИ ОБЪЁМА: ≥10 минутных свечей по $1M за последние 30 минут ──
 const BURST_WINDOW_MIN=30, BURST_MIN_CANDLES=10, BURST_THRESHOLD_USD=1000000;
+// Минимальное движение цены за 24ч для попадания в режим "Объём в $"
+// Монеты ниже порога считаются "шумом" без направленного импульса
+const BURST_MIN_CHANGE24H_PCT=5;
 // Тяжеловесы (BTC, ETH, SOL и т.п.) почти всегда держат объём ≥$1M на свечу — это их
 // обычное фоновое состояние, а не всплеск интереса. Если в широком окне (60 минут)
 // доля таких свечей выше HEAVYWEIGHT_RATIO — считаем это нормой монеты и исключаем
@@ -1369,7 +1378,7 @@ async function computeBurstStates(){
       // Используем change24h (сохранённое из тикера), а не c.change которое могло быть
       // перезаписано ренджем за выбранный период в applyRangeToCoins.
       const change24h=coins[c.symbol]?.change24h??coins[c.symbol]?.change??0;
-      const hasSignificantMove=Math.abs(change24h)>=10;
+      const hasSignificantMove=Math.abs(change24h)>=BURST_MIN_CHANGE24H_PCT;
 
       const isBurstNow=burstCount>=BURST_MIN_CANDLES&&!isHeavyweight&&hasSignificantMove;
       if(coins[c.symbol]){
@@ -1503,10 +1512,16 @@ async function computePlateauStates(){
   try{
     // Только низколиквидные монеты — суточный объём ≤$300K (противоположный фильтр
     // тому, что используется в остальных режимах, где нужны ликвидные монеты)
-    const candidates=Object.values(coins).filter(c=>c.price>0&&c.volume>0&&c.volume<=PLATEAU_MAX_24H_VOLUME);
-    // Бесплатный CORS-прокси для MEXC (allorigins.win) имеет жёсткий rate limit —
-    // большие параллельные батчи сразу дают ошибку 429 (Too Many Requests)
-    const batchSize=ex==='mexc'?5:75;
+    // Для MEXC жёстко ограничиваем число кандидатов — прокси (corsproxy.io) даёт 429
+    // при слишком большом числе запросов. Берём топ-25 по объёму среди низколиквидных.
+    // Для других бирж ограничение мягче — у них прямой API без прокси-посредника.
+    const maxCandidates=ex==='mexc'?25:150;
+    const candidates=Object.values(coins)
+      .filter(c=>c.price>0&&c.volume>0&&c.volume<=PLATEAU_MAX_24H_VOLUME)
+      .sort((a,b)=>b.volume-a.volume)
+      .slice(0,maxCandidates);
+    const batchSize=ex==='mexc'?3:75;
+    const mexcBatchDelay=ex==='mexc'?1500:0;
     const limit=MAX_RANGE_MIN+2;
     const candidatesToFetch=candidates.filter(c=>klinesStale(c.symbol));
 
@@ -1528,8 +1543,7 @@ async function computePlateauStates(){
           klinesSet(c.symbol,await r.json());
         }catch(e){/* пропускаем монету при ошибке сети */}
       }));
-      // Пауза между батчами для MEXC — иначе бесплатный прокси быстро отдаёт 429
-      if(ex==='mexc') await new Promise(res=>setTimeout(res,800));
+      if(mexcBatchDelay>0) await new Promise(res=>setTimeout(res,mexcBatchDelay));
     }
 
     candidates.forEach(c=>{
@@ -1685,7 +1699,7 @@ function renderGrid(){
       const msg=sortMode==='plateau'
         ?'Сейчас нет монет с паттерном "тишина → плато → тишина". Это нормально — паттерн появляется не постоянно, попробуйте проверить позже.'
         :sortMode==='burst'
-        ?'Сейчас нет монет с активным всплеском объёма.'
+        ?`Сейчас нет монет с всплеском объёма и движением ≥${BURST_MIN_CHANGE24H_PCT}% за 24ч. На спокойном рынке это нормально.`
         :'Нет данных для отображения.';
       area.innerHTML=`<div class="grid-loading">${msg}</div>`;
       return;
