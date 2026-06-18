@@ -1051,7 +1051,10 @@ async function fetchData(){
     } else if(renderedSyms.length===0){
       // В burst/plateau режимах не показываем промежуточный список ликвидных монет
       // (они не соответствуют этим режимам и вызывают мерцание), но показываем индикатор
-      document.getElementById('grid-area').innerHTML='<div class="grid-loading">Анализ объёмов…</div>';
+      const loadMsg=ex==='mexc'&&(sortMode==='plateau')
+        ?'Анализ объёмов MEXC через прокси… (~15 сек)'
+        :'Анализ объёмов…';
+      document.getElementById('grid-area').innerHTML=`<div class="grid-loading">${loadMsg}</div>`;
     }
     // После получения базовых данных — подгружаем рендж (% за выбранный период)
     await applyRangeToCoins();
