@@ -1124,10 +1124,8 @@ async function fetchOkx(){
   });
 }
 async function fetchMexc(){
-  // MEXC тикер через allorigins.win — только для получения списка монет и их объёмов.
-  // klines для MEXC НЕ используем (все прокси дают 429 или 400) — режим "Плато" для
-  // MEXC заменён на "Активность" которая работает только на данных тикера.
-  const proxyUrl=`https://api.allorigins.win/raw?url=${encodeURIComponent('https://api.mexc.com/api/v1/contract/ticker')}`;
+  // MEXC тикер через собственный Cloudflare Worker прокси — стабильно, 100K запросов/день бесплатно
+  const proxyUrl='https://mexc-proxy.dfdsfgs334.workers.dev/ticker';
   let lastErr=null;
   for(let attempt=1;attempt<=3;attempt++){
     try{
@@ -1580,10 +1578,18 @@ async function checkPlateau(){
 // - activity score в топ-N относительно всех кандидатов
 
 function computeActivityScores(){
-  const ACTIVITY_MAX_VOL24H=5_000_000;   // верхняя граница суточного объёма
-  const ACTIVITY_MIN_CHANGE=3;           // минимальное движение за 24ч, %
+  const ACTIVITY_MAX_VOL24H=5_000_000;
+  const ACTIVITY_MIN_CHANGE=3;
 
-  return Object.values(coins)
+  const all=Object.values(coins);
+  // Диагностика в консоль — поможет понять почему пустой результат
+  console.log('[Activity] coins:',all.length,
+    '| vol<=5M:',all.filter(c=>c.volume>0&&c.volume<=ACTIVITY_MAX_VOL24H).length,
+    '| chg>=3%:',all.filter(c=>Math.abs(c.change24h??c.change??0)>=ACTIVITY_MIN_CHANGE).length);
+  if(all.length>0) console.log('[Activity] sample coin:',JSON.stringify(
+    {sym:all[0].symbol,price:all[0].price,vol:all[0].volume,chg24h:all[0].change24h,chg:all[0].change}));
+
+  return all
     .filter(c=>
       c.price>0 &&
       c.volume>0 &&
@@ -1591,8 +1597,6 @@ function computeActivityScores(){
       Math.abs(c.change24h??c.change??0)>=ACTIVITY_MIN_CHANGE
     )
     .map(c=>{
-      // activity score = объём × |движение|²  — выражает не просто большой объём,
-      // а сочетание объёма с резкостью движения (квадрат чтобы усилить разницу)
       const chg=Math.abs(c.change24h??c.change??0);
       const score=c.volume*chg*chg;
       return{...c,activityScore:score};
