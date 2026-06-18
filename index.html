@@ -984,9 +984,17 @@ async function switchSortModeFast(){
     } else if(sortMode==='plateau'){
       await checkPlateau();
     } else {
-      await applyRangeToCoins();
+      // Сначала мгновенно показываем результат из текущего кэша (даже если он чуть устарел) —
+      // пользователь видит правильные монеты почти сразу, без паузы на сетевые запросы.
+      // Потом в фоне обновляем устаревшие klines и тихо пересчитываем рендж.
+      applyRangeFromCache();
       Object.values(coins).forEach(c=>checkAlerts(c.symbol,c.price,c.change,c.volume));
       applyFilters();
+      // Фоновое обновление: не ждём его завершения (нет await), не блокируем UI
+      applyRangeToCoins().then(()=>{
+        Object.values(coins).forEach(c=>checkAlerts(c.symbol,c.price,c.change,c.volume));
+        applyFilters();
+      });
     }
   }finally{
     modeSwitchInProgress=false;
@@ -1040,9 +1048,7 @@ async function fetchData(){
     // промежуточного неправильного набора монет.
     if(renderedSyms.length===0&&sortMode!=='burst'&&sortMode!=='plateau') renderByVolumeFallback();
     // После получения базовых данных — подгружаем рендж (% за выбранный период)
-    // forceRefetch=true: это регулярный цикл обновления, нужны свежие klines
-    // (в отличие от switchSortModeFast, где скорость важнее свежести при простом переключении)
-    await applyRangeToCoins(true);
+    await applyRangeToCoins();
     // Проверяем алерты по финальным данным (с учётом ренджа)
     Object.values(coins).forEach(c=>checkAlerts(c.symbol,c.price,c.change,c.volume));
     if(sortMode==='burst'){
@@ -1149,9 +1155,49 @@ async function fetchMexc(){
 // Кэш сырых klines по символам — позволяет переключаться между "Рендж за 5м" и
 // "Рендж за 1ч" мгновенно, без повторного запроса к бирже (оба периода укладываются
 // в один и тот же набор последних 62 минутных свечей).
-let klinesCache={};
+let klinesCache={}; // {sym: {data, ts}} — данные + время последнего запроса
+const KLINES_CACHE_TTL_MS=60000; // не перезапрашивать klines чаще раза в минуту
+function klinesGet(sym){const e=klinesCache[sym];return e?e.data:null;}
+function klinesSet(sym,data){klinesCache[sym]={data,ts:Date.now()};}
+function klinesStale(sym){const e=klinesCache[sym];return!e||Date.now()-e.ts>KLINES_CACHE_TTL_MS;}
 const MAX_RANGE_MIN=60;
-async function applyRangeToCoins(forceRefetch=false){
+// Мгновенный пересчёт ренджа из текущего кэша без сетевых запросов.
+// Вызывается при переключении сортировки чтобы результат появился сразу,
+// пока applyRangeToCoins() обновляет устаревшие данные в фоне.
+function applyRangeFromCache(){
+  const mode=SORT_MODES.find(m=>m.key===sortMode)||SORT_MODES[0];
+  const minutes=mode.rangeMin||5;
+  const candidates=Object.values(coins).filter(c=>c.price>0&&c.volume>=300000)
+    .sort((a,b)=>b.volume-a.volume).slice(0,150);
+  candidates.forEach(c=>{
+    const data=klinesGet(c.symbol);
+    if(!data)return;
+    try{
+      let closeNow,closePast;
+      if(ex==='bybit'){
+        const list=data.result?.list||[];if(list.length<2)return;
+        closeNow=parseFloat(list[0][4]);closePast=parseFloat(list[Math.min(minutes,list.length-1)][4]);
+      } else if(ex==='okx'){
+        const list=data.data||[];if(list.length<2)return;
+        closeNow=parseFloat(list[0][4]);closePast=parseFloat(list[Math.min(minutes,list.length-1)][4]);
+      } else if(ex==='mexc'){
+        const closes=data.data?.close||[];if(closes.length<2)return;
+        closeNow=closes[closes.length-1];closePast=closes[Math.max(0,closes.length-1-minutes)];
+      } else {
+        if(data.length<2)return;
+        closeNow=parseFloat(data[data.length-1][4]);closePast=parseFloat(data[Math.max(0,data.length-1-minutes)][4]);
+      }
+      if(closePast>0&&coins[c.symbol]){
+        const rangeChg=(closeNow-closePast)/closePast*100;
+        coins[c.symbol].rangeChange=rangeChg;
+        coins[c.symbol].change=rangeChg;
+        coins[c.symbol].hasRange=true;
+      }
+    }catch(e){}
+  });
+}
+
+async function applyRangeToCoins(){
   const mode=SORT_MODES.find(m=>m.key===sortMode)||SORT_MODES[0];
   const minutes=mode.rangeMin||5;
   // Берём топ-150 монет по объёму 24ч — этого достаточно чтобы покрыть весь ликвидный рынок
@@ -1159,11 +1205,12 @@ async function applyRangeToCoins(forceRefetch=false){
   const candidates=Object.values(coins).filter(c=>c.price>0&&c.volume>=300000)
     .sort((a,b)=>b.volume-a.volume).slice(0,150);
   const limit=MAX_RANGE_MIN+2; // всегда качаем максимум, чтобы переключение периодов было бесплатным
-  // Бесплатный CORS-прокси для MEXC (allorigins.win) имеет жёсткий rate limit —
-  // большие параллельные батчи сразу дают ошибку 429 (Too Many Requests).
-  // Для остальных бирж (прямой доступ к API) большой батч безопасен.
-  const batchSize=ex==='mexc'?5:40;
-  const candidatesToFetch=forceRefetch?candidates:candidates.filter(c=>!klinesCache[c.symbol]);
+  // Бесплатный CORS-прокси для MEXC — маленькие батчи чтобы не получить 429
+  const batchSize=ex==='mexc'?5:75;
+  // TTL-кэш: пропускаем монеты, klines которых свежее KLINES_CACHE_TTL_MS (1 минута).
+  // Это главная оптимизация скорости: при переключении сортировок и при регулярном
+  // обновлении цикла не делаем лишние сетевые запросы для данных, которые ещё актуальны.
+  const candidatesToFetch=candidates.filter(c=>klinesStale(c.symbol));
 
   for(let i=0;i<candidatesToFetch.length;i+=batchSize){
     const batch=candidatesToFetch.slice(i,i+batchSize);
@@ -1184,7 +1231,7 @@ async function applyRangeToCoins(forceRefetch=false){
         const r=await fetchWithTimeout(url,ex==='mexc'?8000:4000);
         if(!r||!r.ok)return;
         const data=await r.json();
-        klinesCache[c.symbol]=data;
+        klinesSet(c.symbol,data);
       }catch(e){/* пропускаем монету при ошибке */}
     }));
     // Пауза между батчами для MEXC — иначе бесплатный прокси быстро отдаёт 429
@@ -1193,7 +1240,7 @@ async function applyRangeToCoins(forceRefetch=false){
 
   // Считаем рендж% для нужного периода из кэша (свежего или только что обновлённого)
   candidates.forEach(c=>{
-    const data=klinesCache[c.symbol];
+    const data=klinesGet(c.symbol);
     if(!data)return;
     let closeNow,closePast;
     try{
@@ -1267,7 +1314,7 @@ async function computeBurstStates(){
   // klinesCache уже содержит до MAX_RANGE_MIN+2 (62) минутных свечей на монету — этого
   // достаточно для 30-минутного окна всплеска, так что повторный запрос нужен только
   // для монет, которых ещё нет в кэше (новые в топ-150, или первый запуск burst-режима)
-  const candidatesToFetch=candidates.filter(c=>!klinesCache[c.symbol]);
+  const candidatesToFetch=candidates.filter(c=>klinesStale(c.symbol));
   const limit=MAX_RANGE_MIN+2;
 
   for(let i=0;i<candidatesToFetch.length;i+=batchSize){
@@ -1281,7 +1328,7 @@ async function computeBurstStates(){
           :`https://fapi.binance.com/fapi/v1/klines?symbol=${c.symbol}USDT&interval=1m&limit=${limit}`;
         const r=await fetchWithTimeout(url,4000);
         if(!r||!r.ok)return;
-        klinesCache[c.symbol]=await r.json();
+        klinesSet(c.symbol,await r.json());
       }catch(e){/* пропускаем монету при ошибке сети */}
     }));
   }
@@ -1289,7 +1336,7 @@ async function computeBurstStates(){
   // Считаем всплески из кэша (свежего или только что дозагруженного)
   const newBurstSyms=new Set();
   candidates.forEach(c=>{
-    const data=klinesCache[c.symbol];
+    const data=klinesGet(c.symbol);
     if(!data)return;
     try{
       let candleVolsUsd=[];
@@ -1459,9 +1506,9 @@ async function computePlateauStates(){
     const candidates=Object.values(coins).filter(c=>c.price>0&&c.volume>0&&c.volume<=PLATEAU_MAX_24H_VOLUME);
     // Бесплатный CORS-прокси для MEXC (allorigins.win) имеет жёсткий rate limit —
     // большие параллельные батчи сразу дают ошибку 429 (Too Many Requests)
-    const batchSize=ex==='mexc'?5:40;
+    const batchSize=ex==='mexc'?5:75;
     const limit=MAX_RANGE_MIN+2;
-    const candidatesToFetch=candidates.filter(c=>!klinesCache[c.symbol]);
+    const candidatesToFetch=candidates.filter(c=>klinesStale(c.symbol));
 
     for(let i=0;i<candidatesToFetch.length;i+=batchSize){
       const batch=candidatesToFetch.slice(i,i+batchSize);
@@ -1478,7 +1525,7 @@ async function computePlateauStates(){
             :`https://fapi.binance.com/fapi/v1/klines?symbol=${c.symbol}USDT&interval=1m&limit=${limit}`;
           const r=await fetchWithTimeout(url,ex==='mexc'?8000:4000);
           if(!r||!r.ok)return;
-          klinesCache[c.symbol]=await r.json();
+          klinesSet(c.symbol,await r.json());
         }catch(e){/* пропускаем монету при ошибке сети */}
       }));
       // Пауза между батчами для MEXC — иначе бесплатный прокси быстро отдаёт 429
@@ -1486,7 +1533,7 @@ async function computePlateauStates(){
     }
 
     candidates.forEach(c=>{
-      const data=klinesCache[c.symbol];
+      const data=klinesGet(c.symbol);
       if(!data){coins[c.symbol].isPlateau=false;return;}
       try{
         let vols=[];
