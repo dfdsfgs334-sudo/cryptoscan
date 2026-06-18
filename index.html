@@ -333,6 +333,7 @@ if(sessionStorage.getItem('cs_pw_ok')==='1'){
     <button class="exch-btn on" onclick="setEx('binance',this)">Binance</button>
     <button class="exch-btn" onclick="setEx('bybit',this)">ByBit</button>
     <button class="exch-btn" onclick="setEx('okx',this)">OKX</button>
+    <button class="exch-btn" onclick="setEx('mexc',this)">MEXC</button>
   </div>
 
   <!-- Только Фьючерсы -->
@@ -843,6 +844,7 @@ const SORT_MODES=[
   {key:'range1h',label:'Рендж за',val:'1ч',rangeMin:60},
   {key:'burst',label:'Объём',val:'в $',rangeMin:5},
   {key:'plateau',label:'Плато',val:'объёма',rangeMin:5},
+  {key:'activity',label:'Активность',val:'MEXC',rangeMin:5},
 ];
 const TV_TF={'1m':'1','3m':'3','5m':'5','15m':'15','30m':'30','1h':'60','4h':'240','1d':'D'};
 
@@ -860,7 +862,7 @@ function loadSettings(){
     } else if(s.sortMode){
       sortMode=s.sortMode;
     }
-    if(s.ex&&s.ex!=='gate'&&s.ex!=='mexc') ex=s.ex;
+    if(s.ex&&s.ex!=='gate') ex=s.ex;
     if(s.tf) tf=s.tf;
     if(s.cols) cols=s.cols;
     if(s.activeFilters) activeFilters=s.activeFilters;
@@ -950,7 +952,7 @@ function toggleRangeDropdown(){
   // Заполняем меню всеми режимами сортировки карты рынка
   const menu=document.getElementById('range-menu');
   menu.innerHTML=SORT_MODES.map(m=>{
-    const text=m.key==='burst'?'Объём в $':m.key==='plateau'?'Плато объёма (низколикв.)':`Рендж за ${m.val}`;
+    const text=m.key==='burst'?'Объём в $':m.key==='plateau'?'Плато объёма (низколикв.)':m.key==='activity'?'Активность (MEXC)':`Рендж за ${m.val}`;
     return`<div class="range-item ${m.key===sortMode?'sel':''}" onclick="selectSortMode('${m.key}')">${text}</div>`;
   }).join('');
   wrap.classList.add('open');
@@ -982,6 +984,8 @@ async function switchSortModeFast(){
       await checkVolumeBursts();
     } else if(sortMode==='plateau'){
       await checkPlateau();
+    } else if(sortMode==='activity'){
+      checkActivity(); // синхронный — не требует klines, работает на данных тикера
     } else {
       // Сначала мгновенно показываем результат из текущего кэша (даже если он чуть устарел) —
       // пользователь видит правильные монеты почти сразу, без паузы на сетевые запросы.
@@ -1031,6 +1035,7 @@ async function fetchData(){
   try{
     if(ex==='bybit') await fetchBybit();
     else if(ex==='okx') await fetchOkx();
+    else if(ex==='mexc') await fetchMexc();
     else await fetchBinance();
     if(Object.keys(coins).length===0){
       // Биржа ответила, но монет не нашлось — вероятно изменился формат ответа API
@@ -1060,6 +1065,8 @@ async function fetchData(){
       await checkVolumeBursts();
     } else if(sortMode==='plateau'){
       await checkPlateau();
+    } else if(sortMode==='activity'){
+      checkActivity();
     } else {
       // Режим "Объём в $" не открыт на экране, но всплески всё равно считаем в фоне —
       // это нужно, чтобы Telegram-алерт на новый всплеск приходил независимо от того,
@@ -1115,6 +1122,41 @@ async function fetchOkx(){
     const vol=parseFloat(t.volCcy24h||0);
     coins[sym]={symbol:sym,price:pr,change:chg,change24h:chg,volume:vol,count:0,signal:Math.abs(chg)>=2.5&&vol>=500000?(chg>0?'pump':'dump'):'none'};
   });
+}
+async function fetchMexc(){
+  // MEXC тикер через allorigins.win — только для получения списка монет и их объёмов.
+  // klines для MEXC НЕ используем (все прокси дают 429 или 400) — режим "Плато" для
+  // MEXC заменён на "Активность" которая работает только на данных тикера.
+  const proxyUrl=`https://api.allorigins.win/raw?url=${encodeURIComponent('https://api.mexc.com/api/v1/contract/ticker')}`;
+  let lastErr=null;
+  for(let attempt=1;attempt<=3;attempt++){
+    try{
+      const r=await fetchWithTimeout(proxyUrl,12000);
+      if(!r)throw new Error('таймаут');
+      if(!r.ok)throw new Error(`статус ${r.status}`);
+      const json=await r.json();
+      const list=Array.isArray(json.data)?json.data:(json.data?[json.data]:[]);
+      if(list.length===0)throw new Error('нет данных');
+      list.forEach(t=>{
+        if(!t.symbol?.endsWith('_USDT'))return;
+        const sym=t.symbol.replace('_USDT','');
+        const pr=parseFloat(t.lastPrice||0);
+        const chg=parseFloat(t.riseFallRate||0)*100;
+        const vol=parseFloat(t.amount24||0);
+        // holdVol — объём за последний час (amount1 или approximation через fairPrice/indexPrice delta)
+        // MEXC тикер не отдаёт почасовой объём напрямую, поэтому для "Активности"
+        // используем volume24 (количество контрактов) и amount24 (объём в USDT)
+        const vol1h=parseFloat(t.amount1||0); // amount1 если есть, иначе 0
+        coins[sym]={symbol:sym,price:pr,change:chg,change24h:chg,volume:vol,vol1h,count:0,
+          signal:Math.abs(chg)>=2.5&&vol>=10000?(chg>0?'pump':'dump'):'none'};
+      });
+      return;
+    }catch(e){
+      lastErr=e;
+      if(attempt<3)await new Promise(res=>setTimeout(res,1500*attempt));
+    }
+  }
+  throw new Error(`MEXC: не удалось получить данные (${lastErr?.message||''})`);
 }
 // ── РЕНДЖ: % изменения цены за выбранный период (не 24h) ───
 // Кэш сырых klines по символам — позволяет переключаться между "Рендж за 5м" и
@@ -1523,6 +1565,65 @@ async function checkPlateau(){
   renderGrid();
 }
 
+// ── АКТИВНОСТЬ: аномальный объём относительно суточного среднего ──────────────
+// Режим специально для MEXC (но работает на любой бирже) — не требует klines,
+// работает только на данных тикера которые уже загружены.
+//
+// Логика: каждый тикер отдаёт суточный объём (volume 24h). Делим его на 24 —
+// получаем "нормальный" часовой объём для этой монеты. Сравниваем с текущей
+// активностью, которую оцениваем через |change%| × volume — чем сильнее монета
+// движется при высоком объёме, тем выше её "activity score".
+//
+// Фильтры:
+// - Суточный объём ≤ $5M (исключаем крупные ликвидные монеты — для них это норма)
+// - |change24h| ≥ 3% (монета должна двигаться, а не стоять на месте)
+// - activity score в топ-N относительно всех кандидатов
+
+function computeActivityScores(){
+  const ACTIVITY_MAX_VOL24H=5_000_000;   // верхняя граница суточного объёма
+  const ACTIVITY_MIN_CHANGE=3;           // минимальное движение за 24ч, %
+
+  return Object.values(coins)
+    .filter(c=>
+      c.price>0 &&
+      c.volume>0 &&
+      c.volume<=ACTIVITY_MAX_VOL24H &&
+      Math.abs(c.change24h??c.change??0)>=ACTIVITY_MIN_CHANGE
+    )
+    .map(c=>{
+      // activity score = объём × |движение|²  — выражает не просто большой объём,
+      // а сочетание объёма с резкостью движения (квадрат чтобы усилить разницу)
+      const chg=Math.abs(c.change24h??c.change??0);
+      const score=c.volume*chg*chg;
+      return{...c,activityScore:score};
+    })
+    .sort((a,b)=>b.activityScore-a.activityScore);
+}
+
+function checkActivity(){
+  const rows=computeActivityScores();
+
+  if(rows.length===0){
+    gridSyms=[];
+    renderGrid();
+    return;
+  }
+
+  const HYSTERESIS_MARGIN=4;
+  const currentSet=new Set(renderedSyms);
+  const topStrict=rows.slice(0,cols).map(c=>c.symbol);
+  const extended=rows.slice(0,cols+HYSTERESIS_MARGIN).map(c=>c.symbol);
+  const keep=extended.filter(s=>currentSet.has(s));
+  const result=[...keep];
+  for(const s of topStrict){
+    if(result.length>=cols) break;
+    if(!result.includes(s)) result.push(s);
+  }
+
+  gridSyms=result.slice(0,cols);
+  renderGrid();
+}
+
 
 function updateGridLayout(){
   const area=document.getElementById('grid-area');
@@ -1571,7 +1672,7 @@ function applyFilters(){
 }
 
 function tvSym(sym){
-  const m={binance:`BINANCE:${sym}USDT.P`,bybit:`BYBIT:${sym}USDT.P`,okx:`OKX:${sym}USDT.P`};
+  const m={binance:`BINANCE:${sym}USDT.P`,bybit:`BYBIT:${sym}USDT.P`,okx:`OKX:${sym}USDT.P`,mexc:`MEXC:${sym}USDT.P`};
   return m[ex]||`BINANCE:${sym}USDT.P`;
 }
 function tvUrl(sym,interval,fullTools=false){
@@ -1626,6 +1727,8 @@ function renderGrid(){
         ?'Сейчас нет монет с паттерном "тишина → плато → тишина". Это нормально — паттерн появляется не постоянно, попробуйте проверить позже.'
         :sortMode==='burst'
         ?`Сейчас нет монет с всплеском объёма и движением ≥${BURST_MIN_CHANGE24H_PCT}% за 24ч. На спокойном рынке это нормально.`
+        :sortMode==='activity'
+        ?'Нет монет с аномальной активностью. Попробуйте позже или переключитесь на другой режим.'
         :'Нет данных для отображения.';
       area.innerHTML=`<div class="grid-loading">${msg}</div>`;
       return;
@@ -1635,6 +1738,13 @@ function renderGrid(){
       const cls=c.change>0?'up':c.change<0?'dn':'nu';
       const sign=c.change>=0?'+':'';
       const burstBadge=sortMode==='burst'&&c.burstCount?`<span class="cb-burst">🔥${c.burstCount}/${BURST_WINDOW_MIN}м</span>`:'';
+      // В burst-режиме показываем 24ч изменение отдельно от рендж-% (который мог перезаписать c.change)
+      const chg24h=c.change24h??c.change??0;
+      const chg24hSign=chg24h>=0?'+':'';
+      const chg24hCls=chg24h>0?'up':chg24h<0?'dn':'nu';
+      const chg24hBadge=sortMode==='burst'&&c.change24h!==undefined
+        ?`<span class="cb-chg ${chg24hCls}" style="opacity:.7;font-size:10px;padding:1px 4px">${chg24hSign}${chg24h.toFixed(1)}%24ч</span>`
+        :'';
       const glow=cellGlow(c.change);
       const cell=document.createElement('div');
       cell.className='cell';
@@ -1650,6 +1760,7 @@ function renderGrid(){
       cell.innerHTML=`
         <div class="cell-bar" id="cb-${sym}">
           <span class="cb-chg ${cls}">${sign}${(c.change||0).toFixed(2)}%</span>
+          ${chg24hBadge}
           <span class="cb-price">$${fmtP(c.price||0)}</span>
           <span class="cb-vol">${fmtV(c.volume||0)}</span>
           ${burstBadge}
