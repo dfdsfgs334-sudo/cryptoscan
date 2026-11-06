@@ -1,0 +1,7 @@
+project_id = "jklcjlqpzzmfyvbvgohc"
+
+[functions.save-keys]
+verify_jwt = true
+
+[functions.sync]
+verify_jwt = true

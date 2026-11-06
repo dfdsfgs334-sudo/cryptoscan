@@ -2,80 +2,1430 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Journal test</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CryptoScan Journal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-  body { font-family: system-ui, sans-serif; background:#0b0f1a; color:#e6f1ff; max-width:520px; margin:40px auto; padding:0 16px; }
-  input { width:100%; padding:10px; margin:6px 0 12px; background:#131a2b; color:#e6f1ff; border:1px solid #2a3550; border-radius:8px; box-sizing:border-box; }
-  button { padding:10px 16px; margin-right:8px; background:#00e5ff; color:#001018; border:0; border-radius:8px; font-weight:600; cursor:pointer; }
-  pre { background:#131a2b; padding:12px; border-radius:8px; white-space:pre-wrap; }
-  h3 { margin-top:28px; }
+:root{
+  --bg:#070a12; --bg2:#0b1020; --card:#0f1528; --card2:#141b33; --line:#1f2947; --line2:#2a3660;
+  --text:#e8eeff; --muted:#8b97bd; --dim:#5b6690;
+  --accent:#00e5ff; --accent2:#7c5cff; --green:#00d68f; --red:#ff4d6d; --yellow:#ffc857;
+  --green-bg:rgba(0,214,143,.12); --red-bg:rgba(255,77,109,.12);
+  --radius:14px; --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body{background:radial-gradient(1200px 600px at 10% -10%,rgba(124,92,255,.14),transparent 60%),radial-gradient(900px 500px at 100% 0,rgba(0,229,255,.10),transparent 60%),var(--bg);min-height:100vh}
+a{color:var(--accent)}
+button{font:inherit;cursor:pointer}
+input,select,textarea{font:inherit;color:var(--text);background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:9px 12px;outline:none;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,229,255,.12)}
+textarea{min-height:110px;resize:vertical}
+label{display:block;font-size:12px;color:var(--muted);margin:12px 0 6px;font-weight:500}
+.mono{font-family:var(--mono)}
+.btn{border:0;border-radius:10px;padding:9px 16px;font-weight:600;background:linear-gradient(135deg,var(--accent),#3fa9ff);color:#001018;transition:.15s;white-space:nowrap}
+.btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn.ghost{background:var(--card2);color:var(--text);border:1px solid var(--line2)}
+.btn.danger{background:transparent;color:var(--red);border:1px solid rgba(255,77,109,.4)}
+.btn.sm{padding:6px 11px;font-size:12px}
+.pos{color:var(--green)} .neg{color:var(--red)}
+.hidden{display:none!important}
+
+/* Auth */
+#auth{min-height:100vh;display:grid;place-items:center;padding:16px}
+.auth-card{width:100%;max-width:400px;background:rgba(15,21,40,.85);border:1px solid var(--line);border-radius:20px;padding:32px;backdrop-filter:blur(10px);box-shadow:0 30px 80px rgba(0,0,0,.5)}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;letter-spacing:-.02em}
+.logo-mark{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;color:#001018;font-weight:900}
+.auth-card h1{font-size:26px;margin:24px 0 4px;letter-spacing:-.03em}
+.auth-card p{color:var(--muted);margin:0 0 12px}
+.auth-switch{margin-top:16px;color:var(--muted);font-size:13px;text-align:center}
+.auth-switch a{cursor:pointer}
+
+/* Layout */
+.top{position:sticky;top:0;z-index:20;background:rgba(7,10,18,.8);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.top-in{max-width:1400px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:20px}
+.tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+.tab{background:none;border:0;color:var(--muted);padding:8px 14px;border-radius:9px;font-weight:600;white-space:nowrap}
+.tab:hover{color:var(--text);background:var(--card)}
+.tab.active{color:var(--text);background:var(--card2);box-shadow:inset 0 0 0 1px var(--line2)}
+.top-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.sync-pill{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);background:var(--card);border:1px solid var(--line);padding:6px 10px;border-radius:999px;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--dim)}
+.dot.on{background:var(--green);box-shadow:0 0 10px var(--green)}
+.dot.run{background:var(--yellow);animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.3}}
+main{max-width:1400px;margin:0 auto;padding:20px}
+.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px}
+.seg{display:flex;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:3px}
+.seg button{background:none;border:0;color:var(--muted);padding:6px 11px;border-radius:7px;font-weight:600;font-size:12.5px}
+.seg button.active{background:var(--card2);color:var(--text);box-shadow:inset 0 0 0 1px var(--line2)}
+.filters input[type=date]{width:auto;padding:6px 10px}
+.filters .grow{flex:1}
+
+.grid{display:grid;gap:14px}
+.grid>*{min-width:0}
+#recent,#jSetup,#jEmotion,#jTags,#jMistakes,#jRating,#jHold{overflow-x:auto}
+.kpi .v span{white-space:nowrap}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.card{background:linear-gradient(180deg,var(--card),rgba(15,21,40,.7));border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.card h3{margin:0 0 12px;font-size:13px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:8px}
+.card h3 .sp{margin-left:auto;text-transform:none;letter-spacing:0}
+.kpi .v{font-size:24px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.kpi .l{font-size:12px;color:var(--muted);font-weight:500;margin-bottom:6px}
+.kpi .s{font-size:12px;color:var(--dim);margin-top:4px}
+.kpi.hero{grid-column:span 2;background:linear-gradient(135deg,rgba(0,229,255,.10),rgba(124,92,255,.10)),var(--card);border-color:var(--line2)}
+.kpi.hero .v{font-size:34px}
+.bar2{height:6px;border-radius:3px;background:var(--red-bg);overflow:hidden;margin-top:8px}
+.bar2 i{display:block;height:100%;background:var(--green)}
+.row2{grid-template-columns:2fr 1fr}
+.row3{grid-template-columns:repeat(3,1fr)}
+.chart{position:relative;height:280px}
+.chart.sm{height:220px}
+@media (max-width:1000px){.row2,.row3{grid-template-columns:1fr}.kpi.hero{grid-column:span 1}}
+
+/* Table */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th{font-size:11.5px;color:var(--muted);font-weight:600;text-align:left;padding:10px;border-bottom:1px solid var(--line);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;cursor:pointer;user-select:none}
+th.r,td.r{text-align:right}
+td{padding:10px;border-bottom:1px solid rgba(31,41,71,.6);white-space:nowrap}
+tbody tr{cursor:pointer;transition:background .1s}
+tbody tr:hover{background:rgba(0,229,255,.04)}
+.badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.03em}
+.b-buy{background:var(--green-bg);color:var(--green)} .b-sell{background:var(--red-bg);color:var(--red)}
+.b-spot{background:rgba(0,229,255,.1);color:var(--accent)} .b-fut{background:rgba(124,92,255,.15);color:#a993ff}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;background:var(--card2);border:1px solid var(--line2);font-size:11.5px;color:var(--muted);margin:1px 3px 1px 0}
+.chip.on{border-color:var(--accent);color:var(--accent);background:rgba(0,229,255,.08)}
+.pager{display:flex;align-items:center;gap:10px;justify-content:flex-end;margin-top:12px;color:var(--muted);font-size:13px}
+.empty{padding:50px 20px;text-align:center;color:var(--muted)}
+.empty b{display:block;color:var(--text);font-size:18px;margin-bottom:6px}
+
+/* Calendar */
+.cal-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.cal-head h2{margin:0;font-size:20px;letter-spacing:-.02em;text-transform:capitalize}
+.cal{display:grid;grid-template-columns:repeat(7,1fr) 120px;gap:6px}
+.cal .dow{font-size:11px;color:var(--dim);text-transform:uppercase;text-align:center;padding:4px}
+.cday{min-height:84px;border-radius:10px;background:var(--bg2);border:1px solid var(--line);padding:8px;display:flex;flex-direction:column;font-variant-numeric:tabular-nums}
+.cday .d{font-size:11px;color:var(--dim)}
+.cday .p{margin-top:auto;font-weight:700;font-size:13px}
+.cday .n{font-size:11px;color:var(--muted)}
+.cday.out{opacity:.3}
+.cday.today{border-color:var(--accent)}
+.cweek{border-radius:10px;padding:8px;background:var(--card2);border:1px solid var(--line2);display:flex;flex-direction:column;justify-content:center;font-variant-numeric:tabular-nums}
+@media (max-width:760px){.cal{grid-template-columns:repeat(7,1fr)}.cweek,.cal .dow.wk{display:none}.cday{min-height:56px;padding:4px}.cday .n{display:none}.cday .p{font-size:10px}}
+.heat{display:flex;gap:3px;overflow-x:auto;padding-bottom:4px}
+.heat .col{display:flex;flex-direction:column;gap:3px}
+.heat i{width:12px;height:12px;border-radius:3px;background:var(--bg2);display:block}
+
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(3,5,10,.7);backdrop-filter:blur(6px);z-index:50;display:flex;justify-content:flex-end}
+.modal{width:min(640px,100%);height:100%;overflow-y:auto;background:var(--bg2);border-left:1px solid var(--line2);padding:24px;animation:slide .2s ease}
+@keyframes slide{from{transform:translateX(40px);opacity:0}}
+.modal h2{margin:0;font-size:22px;letter-spacing:-.02em}
+.mhead{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px}
+.mhead .x{margin-left:auto}
+.mstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}
+.mstats div{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px}
+.mstats small{display:block;color:var(--muted);font-size:11px}
+.mstats b{font-variant-numeric:tabular-nums}
+.stars{display:flex;gap:4px}
+.stars button{background:none;border:0;font-size:24px;color:var(--line2);padding:0}
+.stars button.on{color:var(--yellow)}
+.chips-pick{display:flex;flex-wrap:wrap;gap:6px}
+.chips-pick .chip{cursor:pointer;font-size:12.5px;padding:5px 10px}
+.shot{max-width:100%;border-radius:10px;border:1px solid var(--line);margin-top:8px}
+
+/* Settings */
+.set-grid{grid-template-columns:1fr 1fr}
+@media (max-width:900px){.set-grid{grid-template-columns:1fr}}
+.progress{height:10px;background:var(--bg2);border-radius:6px;overflow:hidden;border:1px solid var(--line);margin:12px 0 8px}
+.progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .3s}
+.log:empty{display:none}
+.log{font-family:var(--mono);font-size:12px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;max-height:220px;overflow-y:auto;color:var(--muted);white-space:pre-wrap}
+.note{font-size:12.5px;color:var(--muted);background:var(--bg2);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;padding:10px 12px;margin:10px 0}
+.note.warn{border-left-color:var(--yellow)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px}
+.kv span:nth-child(odd){color:var(--muted)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid var(--line2);padding:10px 18px;border-radius:10px;z-index:100;box-shadow:0 10px 40px rgba(0,0,0,.5);animation:up .2s}
+.toast.err{border-color:var(--red);color:var(--red)}
+@keyframes up{from{transform:translate(-50%,10px);opacity:0}}
+.loader{display:inline-block;width:14px;height:14px;border:2px solid var(--line2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (max-width:640px){main{padding:14px}.top-in{padding:10px 14px;gap:10px;flex-wrap:wrap}.top-right{margin-left:0}.tabs{order:3;width:100%}.kpi .v{font-size:20px}.kpi.hero .v{font-size:28px}.mstats{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
-<h2>Тест дневника</h2>
 
-<h3>1. Вход</h3>
-<input id="email" placeholder="email" />
-<input id="password" type="password" placeholder="пароль" />
-<button id="login">Войти</button>
+<!-- ============ AUTH ============ -->
+<section id="auth" class="hidden">
+  <div class="auth-card">
+    <div class="logo"><div class="logo-mark">◆</div>CryptoScan Journal</div>
+    <h1 id="authTitle">С возвращением</h1>
+    <p id="authSub">Войди, чтобы открыть свой дневник</p>
+    <form id="authForm">
+      <label>Email</label><input id="email" type="email" autocomplete="email" required>
+      <label>Пароль</label><input id="password" type="password" autocomplete="current-password" minlength="6" required>
+      <button class="btn" style="width:100%;margin-top:18px" id="authBtn">Войти</button>
+    </form>
+    <div class="auth-switch" id="authSwitch">Нет аккаунта? <a data-mode="signup">Регистрация</a></div>
+  </div>
+</section>
 
-<h3>2. Подключить ключ Binance</h3>
-<input id="apiKey" placeholder="API Key" />
-<input id="apiSecret" type="password" placeholder="Secret Key" />
-<button id="save">Сохранить ключ</button>
+<!-- ============ APP ============ -->
+<section id="app" class="hidden">
+  <header class="top"><div class="top-in">
+    <div class="logo"><div class="logo-mark">◆</div><span>Journal</span></div>
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-tab="dash">Дашборд</button>
+      <button class="tab" data-tab="trades">Сделки</button>
+      <button class="tab" data-tab="calendar">Календарь</button>
+      <button class="tab" data-tab="journal">Аналитика журнала</button>
+      <button class="tab" data-tab="settings">Binance и импорт</button>
+    </nav>
+    <div class="top-right">
+      <div class="sync-pill" id="syncPill"><span class="dot" id="syncDot"></span><span id="syncText">—</span></div>
+      <button class="btn sm" id="quickSync">Синхронизировать</button>
+      <button class="btn ghost sm" id="logout" title="Выйти">⎋</button>
+    </div>
+  </div></header>
 
-<h3>3. Загрузить сделки</h3>
-<button id="sync">Синхронизировать</button>
+  <main>
+    <div class="filters" id="filters">
+      <div class="seg" id="fPeriod">
+        <button data-v="7">7Д</button><button data-v="30">30Д</button><button data-v="90">90Д</button>
+        <button data-v="365">Год</button><button data-v="ytd">С начала года</button><button data-v="all" class="active">Всё</button>
+      </div>
+      <input type="date" id="fFrom"> <input type="date" id="fTo">
+      <div class="seg" id="fMarket"><button data-v="all" class="active">Все</button><button data-v="spot">Spot</button><button data-v="usdm">Futures</button></div>
+      <div class="grow"></div>
+      <span class="mono" style="color:var(--dim);font-size:12px" id="dataInfo"></span>
+    </div>
 
-<pre id="log">Лог появится здесь</pre>
+    <!-- DASHBOARD -->
+    <div id="tab-dash">
+      <div class="grid kpis" id="kpis"></div>
+      <div class="grid row2" style="margin-top:14px">
+        <div class="card"><h3>Кривая капитала <span class="sp mono" id="eqInfo"></span></h3><div class="chart"><canvas id="cEquity"></canvas></div></div>
+        <div class="card"><h3>Long / Short</h3><div class="chart"><canvas id="cSide"></canvas></div></div>
+      </div>
+      <div class="card" style="margin-top:14px"><h3>PnL по дням</h3><div class="chart sm"><canvas id="cDaily"></canvas></div></div>
+      <div class="grid row3" style="margin-top:14px">
+        <div class="card"><h3>По монетам</h3><div class="chart"><canvas id="cSymbol"></canvas></div></div>
+        <div class="card"><h3>По дням недели</h3><div class="chart"><canvas id="cDow"></canvas></div></div>
+        <div class="card"><h3>По часам (локальное время)</h3><div class="chart"><canvas id="cHour"></canvas></div></div>
+      </div>
+      <div class="grid row2" style="margin-top:14px">
+        <div class="card"><h3>Активность за год</h3><div class="heat" id="heat"></div></div>
+        <div class="card"><h3>Последние сделки</h3><div id="recent"></div></div>
+      </div>
+    </div>
+
+    <!-- TRADES -->
+    <div id="tab-trades" class="hidden">
+      <div class="card">
+        <div class="filters" style="margin-bottom:10px">
+          <input id="tSearch" placeholder="Поиск: пара, тег, сетап…" style="max-width:260px">
+          <div class="seg" id="tResult"><button data-v="all" class="active">Все</button><button data-v="closed">Закрытия</button><button data-v="win">Прибыльные</button><button data-v="loss">Убыточные</button></div>
+          <div class="seg" id="tNoted"><button data-v="all" class="active">Все</button><button data-v="noted">С заметками</button><button data-v="unnoted">Без заметок</button></div>
+          <div class="grow"></div>
+          <button class="btn ghost sm" id="exportCsv">Экспорт CSV</button>
+        </div>
+        <div class="tbl-wrap"><table>
+          <thead><tr>
+            <th data-s="time">Дата</th><th data-s="market">Рынок</th><th data-s="symbol">Пара</th><th data-s="side">Тип</th>
+            <th data-s="price" class="r">Цена</th><th data-s="qty" class="r">Кол-во</th><th data-s="volume" class="r">Объём $</th>
+            <th data-s="fee" class="r">Комиссия $</th><th data-s="pnl" class="r">PnL $</th><th>Журнал</th>
+          </tr></thead>
+          <tbody id="tBody"></tbody>
+        </table></div>
+        <div class="pager"><span id="tInfo"></span><button class="btn ghost sm" id="tPrev">←</button><button class="btn ghost sm" id="tNext">→</button></div>
+      </div>
+    </div>
+
+    <!-- CALENDAR -->
+    <div id="tab-calendar" class="hidden">
+      <div class="card">
+        <div class="cal-head">
+          <button class="btn ghost sm" id="calPrev">←</button><h2 id="calTitle"></h2><button class="btn ghost sm" id="calNext">→</button>
+          <div style="margin-left:auto;text-align:right" id="calSum"></div>
+        </div>
+        <div class="cal" id="cal"></div>
+      </div>
+    </div>
+
+    <!-- JOURNAL ANALYTICS -->
+    <div id="tab-journal" class="hidden">
+      <div class="note">Размечай сделки (клик по сделке → сетап, теги, эмоции, ошибки, оценка) — здесь видно, что реально приносит деньги, а что их сливает.</div>
+      <div class="grid row2">
+        <div class="card"><h3>Сетапы</h3><div id="jSetup"></div></div>
+        <div class="card"><h3>Эмоции</h3><div id="jEmotion"></div></div>
+      </div>
+      <div class="grid row2" style="margin-top:14px">
+        <div class="card"><h3>Теги</h3><div id="jTags"></div></div>
+        <div class="card"><h3>Ошибки — сколько они стоили</h3><div id="jMistakes"></div></div>
+      </div>
+      <div class="grid row2" style="margin-top:14px">
+        <div class="card"><h3>Оценка исполнения</h3><div id="jRating"></div></div>
+        <div class="card"><h3>Длительность позиций (фьючерсы)</h3><div id="jHold"></div></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="tab-settings" class="hidden">
+      <div class="grid set-grid">
+        <div class="card">
+          <h3>API-ключ Binance</h3>
+          <div id="keyStatus" class="kv"></div>
+          <div class="note">Создай ключ в Binance → <b>API Management</b> с правом <b>только чтение</b> (Enable Reading). Ключи с правом вывода не принимаются. Secret шифруется AES-256-GCM и хранится только на сервере.</div>
+          <form id="keyForm">
+            <label>API Key</label><input id="apiKey" class="mono" autocomplete="off" spellcheck="false">
+            <label>Secret Key</label><input id="apiSecret" class="mono" type="password" autocomplete="off" spellcheck="false">
+            <div class="actions"><button class="btn" id="saveKey">Проверить и сохранить</button><button type="button" class="btn danger" id="delKey">Удалить ключ</button></div>
+          </form>
+        </div>
+        <div class="card">
+          <h3>Синхронизация</h3>
+          <div class="kv" id="syncInfo"></div>
+          <div class="progress"><i id="syncBar"></i></div>
+          <div style="font-size:12.5px;color:var(--muted)" id="syncNow">—</div>
+          <div class="actions">
+            <button class="btn" id="syncBtn">Синхронизировать</button>
+            <button class="btn ghost" id="fullSyncBtn" title="Проверить все пары биржи">Полная загрузка истории</button>
+            <button class="btn ghost hidden" id="stopSync">Пауза</button>
+          </div>
+          <div class="note warn">
+            <b>Первая загрузка = полная</b>: у Binance нет общего списка сделок, поэтому проверяется каждая из ~3000 спотовых пар (с учётом лимитов API это 10–15 минут; вкладку держи открытой — прогресс сохраняется, можно продолжить позже).
+            Дальше «Синхронизировать» проверяет только твои пары и монеты на балансе — секунды.<br><br>
+            <b>Фьючерсы USDⓈ-M</b>: Binance отдаёт по API только последние ~6 месяцев. Более старую историю загрузи файлом ниже.
+          </div>
+          <div class="log" id="syncLog"></div>
+        </div>
+        <div class="card">
+          <h3>Импорт истории из файла</h3>
+          <div class="note">Binance → Orders → <b>Spot Order / Futures Order → Trade History → Export</b>. Поддерживаются CSV и XLSX. Дубликаты сделок, уже загруженных по API, пропускаются автоматически.</div>
+          <label>Рынок</label>
+          <select id="impMarket"><option value="auto">Определить автоматически</option><option value="spot">Spot</option><option value="usdm">Futures USDⓈ-M</option></select>
+          <label>Файл</label><input type="file" id="impFile" accept=".csv,.xlsx,.xls,.txt">
+          <div id="impPreview" style="margin-top:10px;font-size:13px;color:var(--muted)"></div>
+          <div class="actions"><button class="btn" id="impBtn" disabled>Импортировать</button></div>
+        </div>
+        <div class="card">
+          <h3>Данные</h3>
+          <div class="kv" id="dataStats"></div>
+          <div class="note">PnL по споту считается методом средней цены входа. Комиссии в BNB и пары не к доллару пересчитываются в $ по текущему курсу — это приближение. Продажи монет, купленных до начала истории (депозит/конвертация), не учитываются в PnL.</div>
+          <div class="actions">
+            <button class="btn ghost" id="reload">Перезагрузить данные</button>
+            <button class="btn danger" id="wipeCsv">Удалить импортированные из файлов</button>
+            <button class="btn danger" id="wipeAll">Удалить все сделки</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</section>
+
+<div id="modalRoot"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
-  const SUPABASE_URL = "https://jklcjlqpzzmfyvbvgohc.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_1Y3DN8WjIJaJfmmmKDf22w_bNr2UU0F";
+/* ==================================================================
+   Конфиг
+   ================================================================== */
+const SUPABASE_URL = "https://jklcjlqpzzmfyvbvgohc.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_1Y3DN8WjIJaJfmmmKDf22w_bNr2UU0F";
+// Регион запуска edge-функций: Binance блокирует запросы из США, поэтому форсим Франкфурт
+const FUNCTIONS_REGION = "eu-central-1";
 
-  const sb = supabase.createClient(PROJECT_URL, ANON_KEY);
-  const log = (msg) => (document.getElementById("log").textContent = msg);
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  async function call(fn, body) {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) throw new Error("Сначала войди");
-    const res = await fetch(`${PROJECT_URL}/functions/v1/${fn}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${session.access_token}`,
-        "apikey": ANON_KEY,
-      },
-      body: JSON.stringify(body ?? {}),
-    });
-    return { status: res.status, body: await res.json() };
+const STABLES = new Set(["USDT", "USDC", "FDUSD", "BUSD", "TUSD", "USDP", "DAI", "USD", "USDS", "PYUSD", "USDE", "XUSD", "UST"]);
+const EMOTIONS = ["Спокоен", "Уверен", "FOMO", "Страх", "Жадность", "Тильт", "Скука", "Месть рынку", "Эйфория", "Сомнение"];
+const MISTAKES = ["Без стопа", "Сдвинул стоп", "Ранний вход", "Поздний вход", "Ранний выход", "Пересидел убыток", "Большой размер", "Овертрейдинг", "Против тренда", "Вне плана", "Усреднение убытка"];
+const SETUPS = ["Пробой", "Ретест", "Отбой от уровня", "Тренд", "Контртренд", "Скальп", "Новости", "Ложный пробой", "Диапазон", "Свинг"];
+
+let USER = null;
+const S = {
+  trades: [], income: [], notes: new Map(), prices: new Map(),
+  orders: [], funding: [],
+  filter: { period: "all", from: null, to: null, market: "all" },
+  tbl: { q: "", result: "all", noted: "all", sort: "time", dir: -1, page: 0 },
+  cal: new Date(), charts: {}, syncing: false, stopSync: false,
+};
+
+/* ==================================================================
+   Форматирование
+   ================================================================== */
+const nf = (d) => new Intl.NumberFormat("ru-RU", { minimumFractionDigits: d, maximumFractionDigits: d });
+const NF0 = nf(0), NF2 = nf(2);
+function usd(v, sign = true) {
+  if (v == null || !isFinite(v)) return "—";
+  const a = Math.abs(v);
+  const s = a >= 1e6 ? NF2.format(a / 1e6) + "M" : a >= 1e4 ? NF0.format(a) : NF2.format(a);
+  return (v < 0 ? "−" : sign && v > 0 ? "+" : "") + "$" + s;
+}
+const cls = (v) => (v > 0 ? "pos" : v < 0 ? "neg" : "");
+function num(v) {
+  if (v == null || !isFinite(v)) return "—";
+  const a = Math.abs(v);
+  const d = a >= 1000 ? 2 : a >= 1 ? 4 : a >= 0.01 ? 6 : 8;
+  return new Intl.NumberFormat("ru-RU", { maximumFractionDigits: d }).format(v);
+}
+const fdt = (t) => new Date(t).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
+const dayKey = (t) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+function dur(ms) {
+  const m = ms / 60000;
+  if (m < 60) return Math.round(m) + " мин";
+  if (m < 1440) return (m / 60).toFixed(1) + " ч";
+  return (m / 1440).toFixed(1) + " дн";
+}
+function toast(msg, err = false) {
+  const t = document.createElement("div");
+  t.className = "toast" + (err ? " err" : "");
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), err ? 6000 : 3000);
+}
+
+/* ==================================================================
+   Supabase: auth + edge functions
+   ================================================================== */
+async function call(fn, body) {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) throw new Error("Сессия истекла — войди снова");
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/${fn}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`,
+      apikey: SUPABASE_ANON_KEY,
+      "x-region": FUNCTIONS_REGION,
+    },
+    body: JSON.stringify(body ?? {}),
+  });
+  const text = await res.text();
+  let data;
+  try { data = JSON.parse(text); } catch { data = { error: `HTTP ${res.status}: ${text.slice(0, 200)}` }; }
+  if (!res.ok || data.error) {
+    const e = new Error(data.error || data.message || data.msg || `HTTP ${res.status}`);
+    e.status = res.status;
+    throw e;
+  }
+  return data;
+}
+
+let authMode = "login";
+function setAuthMode(m) {
+  authMode = m;
+  $("#authTitle").textContent = m === "login" ? "С возвращением" : "Создай аккаунт";
+  $("#authSub").textContent = m === "login" ? "Войди, чтобы открыть свой дневник" : "Дневник трейдера с автозагрузкой сделок Binance";
+  $("#authBtn").textContent = m === "login" ? "Войти" : "Зарегистрироваться";
+  $("#authSwitch").innerHTML = m === "login" ? 'Нет аккаунта? <a data-mode="signup">Регистрация</a>' : 'Уже есть аккаунт? <a data-mode="login">Войти</a>';
+}
+$("#authSwitch").onclick = (e) => { if (e.target.dataset.mode) setAuthMode(e.target.dataset.mode); };
+$("#authForm").onsubmit = async (e) => {
+  e.preventDefault();
+  const btn = $("#authBtn"); btn.disabled = true;
+  const email = $("#email").value.trim(), password = $("#password").value;
+  try {
+    const { data, error } = authMode === "login"
+      ? await sb.auth.signInWithPassword({ email, password })
+      : await sb.auth.signUp({ email, password });
+    if (error) throw error;
+    if (authMode === "signup" && !data.session) toast("Проверь почту и подтверди регистрацию");
+  } catch (err) { toast(err.message, true); }
+  btn.disabled = false;
+};
+$("#logout").onclick = () => sb.auth.signOut();
+
+sb.auth.onAuthStateChange((_ev, session) => {
+  const u = session?.user ?? null;
+  if (u?.id === USER?.id) return;
+  USER = u;
+  $("#auth").classList.toggle("hidden", !!u);
+  $("#app").classList.toggle("hidden", !u);
+  if (u) boot();
+});
+
+/* ==================================================================
+   Загрузка данных
+   ================================================================== */
+async function fetchAll(table, cols, order) {
+  const out = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb.from(table).select(cols).order(order, { ascending: true }).range(from, from + 999);
+    if (error) throw error;
+    out.push(...data);
+    if (data.length < 1000) break;
+  }
+  return out;
+}
+
+async function loadPrices() {
+  try {
+    const r = await fetch("https://api.binance.com/api/v3/ticker/price");
+    const list = await r.json();
+    for (const p of list) S.prices.set(p.symbol, +p.price);
+  } catch (_) {
+    try {
+      const r = await fetch("https://data-api.binance.vision/api/v3/ticker/price");
+      for (const p of await r.json()) S.prices.set(p.symbol, +p.price);
+    } catch (e) { console.warn("Нет курсов", e); }
+  }
+}
+
+/** Цена актива в $ (текущая) */
+function usdRate(asset) {
+  if (!asset) return 0;
+  if (STABLES.has(asset)) return 1;
+  for (const q of ["USDT", "USDC", "FDUSD", "BUSD"]) {
+    const p = S.prices.get(asset + q);
+    if (p) return p;
+  }
+  const btc = S.prices.get(asset + "BTC");
+  if (btc) return btc * (S.prices.get("BTCUSDT") || 0);
+  return 0;
+}
+
+async function loadData() {
+  $("#dataInfo").innerHTML = '<span class="loader"></span> загрузка…';
+  const [trades, income, notes] = await Promise.all([
+    fetchAll("trades", "id,market,symbol,base_asset,quote_asset,trade_id,order_id,side,position_side,price,qty,quote_qty,commission,commission_asset,realized_pnl,is_maker,executed_at,source", "executed_at"),
+    fetchAll("futures_income", "tran_id,income_type,symbol,income,asset,time", "time"),
+    fetchAll("trade_notes", "*", "order_key"),
+    S.prices.size ? null : loadPrices(),
+  ]);
+  S.trades = trades.map((t) => ({
+    ...t, t: Date.parse(t.executed_at), price: +t.price, qty: +t.qty, quote_qty: +t.quote_qty,
+    commission: +t.commission, realized_pnl: t.realized_pnl == null ? null : +t.realized_pnl,
+  }));
+  S.income = income.map((i) => ({ ...i, t: Date.parse(i.time), income: +i.income }));
+  S.notes = new Map(notes.map((n) => [n.order_key, n]));
+  buildOrders();
+  render();
+}
+
+/* ==================================================================
+   Движок: fills → ордера с PnL
+   ================================================================== */
+function splitSymbol(sym) {
+  for (const q of ["USDT", "USDC", "FDUSD", "BUSD", "TUSD", "BTC", "ETH", "BNB", "EUR", "TRY", "BRL", "DAI", "TRX", "XRP", "DOGE", "RUB", "UAH", "JPY", "GBP", "AUD"]) {
+    if (sym.endsWith(q) && sym.length > q.length) return [sym.slice(0, -q.length), q];
+  }
+  return [sym, "USDT"];
+}
+
+function buildOrders() {
+  const bySym = new Map();
+  for (const f of S.trades) {
+    const k = f.market + "|" + f.symbol;
+    if (!bySym.has(k)) bySym.set(k, []);
+    bySym.get(k).push(f);
+  }
+  const orders = new Map();
+
+  for (const fills of bySym.values()) {
+    fills.sort((a, b) => a.t - b.t || String(a.trade_id).localeCompare(String(b.trade_id), undefined, { numeric: true }));
+    const m = fills[0].market;
+    let base = fills[0].base_asset, quote = fills[0].quote_asset;
+    if (m === "spot" && (!base || !quote)) [base, quote] = splitSymbol(fills[0].symbol);
+    if (m === "usdm") quote = quote || splitSymbol(fills[0].symbol)[1];
+    const qRate = usdRate(quote);
+    let pos = 0, avg = 0; // спот: позиция в базе и средняя цена в котировке
+
+    for (const f of fills) {
+      const feeUsd = f.commission * usdRate(f.commission_asset);
+      let pnl = 0, closing = false, unmatched = false, extraFee = 0;
+
+      if (m === "spot") {
+        const feeInBase = f.commission_asset === base ? f.commission : 0;
+        const feeInQuote = f.commission_asset === quote ? f.commission : 0;
+        extraFee = feeInBase || feeInQuote ? 0 : feeUsd; // комиссия в BNB и т.п.
+        if (f.side === "BUY") {
+          const q = f.qty - feeInBase;
+          const cost = f.quote_qty + feeInQuote;
+          if (pos + q > 0) avg = (pos * avg + cost) / (pos + q);
+          pos += q;
+        } else {
+          const matched = Math.min(f.qty, Math.max(pos, 0));
+          const proceeds = f.quote_qty - feeInQuote;
+          if (matched > 0) {
+            pnl = (proceeds * (matched / f.qty) - matched * avg) * qRate;
+            closing = true;
+          }
+          if (matched < f.qty - 1e-12) unmatched = true;
+          pos -= matched;
+          if (pos < 1e-12) { pos = 0; avg = 0; }
+        }
+        pnl -= extraFee;
+      } else {
+        const rp = (f.realized_pnl || 0) * (qRate || 1);
+        closing = Math.abs(f.realized_pnl || 0) > 0;
+        pnl = rp - feeUsd;
+      }
+
+      const key = f.order_id ? `${m}|${f.symbol}|${f.order_id}` : `${m}|${f.symbol}|${f.side}|${Math.floor(f.t / 1000)}`;
+      let o = orders.get(key);
+      if (!o) {
+        o = { key, market: m, symbol: f.symbol, base, quote, side: f.side, positionSide: f.position_side, time: f.t, timeEnd: f.t,
+              qty: 0, quoteQty: 0, volume: 0, fee: 0, pnl: 0, gross: 0, closing: false, unmatched: false, fills: [], source: f.source };
+        orders.set(key, o);
+      }
+      o.fills.push(f);
+      o.qty += f.qty;
+      o.quoteQty += f.quote_qty;
+      o.volume += f.quote_qty * (qRate || 1);
+      o.fee += feeUsd;
+      o.pnl += pnl;
+      o.gross += pnl + (m === "spot" ? extraFee : feeUsd);
+      o.closing ||= closing;
+      o.unmatched ||= unmatched;
+      o.timeEnd = Math.max(o.timeEnd, f.t);
+      o.time = Math.min(o.time, f.t);
+    }
   }
 
-  document.getElementById("login").onclick = async () => {
-    const { error } = await sb.auth.signInWithPassword({
-      email: document.getElementById("email").value,
-      password: document.getElementById("password").value,
+  S.orders = [...orders.values()];
+  for (const o of S.orders) {
+    o.price = o.qty ? o.quoteQty / o.qty : 0;
+    // Направление позиции, которую закрывает ордер (для статистики long/short)
+    if (o.market === "spot") o.dir = "long";
+    else if (o.positionSide === "LONG" || o.positionSide === "SHORT") o.dir = o.positionSide.toLowerCase();
+    else o.dir = o.closing ? (o.side === "SELL" ? "long" : "short") : (o.side === "BUY" ? "long" : "short");
+    o.label = labelOf(o);
+  }
+  S.orders.sort((a, b) => a.time - b.time);
+  computeHoldTimes();
+  S.funding = S.income.filter((i) => i.income_type === "FUNDING_FEE").map((i) => ({ t: i.t, pnl: i.income * (usdRate(i.asset) || 1), symbol: i.symbol }));
+}
+
+function labelOf(o) {
+  if (o.market === "spot") return o.side === "BUY" ? "Покупка" : "Продажа";
+  if (o.closing) return o.dir === "long" ? "Закрытие лонга" : "Закрытие шорта";
+  return o.dir === "long" ? "Открытие лонга" : "Открытие шорта";
+}
+
+/** Длительность фьючерсных позиций: от первого открытия при нулевой позиции до закрытия */
+function computeHoldTimes() {
+  const st = new Map();
+  for (const o of S.orders) {
+    if (o.market !== "usdm") continue;
+    const k = o.symbol + "|" + o.dir;
+    let s = st.get(k);
+    if (!s) st.set(k, (s = { pos: 0, open: null }));
+    const signed = o.dir === "long" ? (o.side === "BUY" ? o.qty : -o.qty) : (o.side === "SELL" ? o.qty : -o.qty);
+    if (s.pos <= 1e-12 && signed > 0) s.open = o.time;
+    s.pos += signed;
+    if (o.closing && s.open) o.hold = o.timeEnd - s.open;
+    if (s.pos <= 1e-12) { s.pos = 0; s.open = null; }
+  }
+}
+
+/* ==================================================================
+   Фильтры и метрики
+   ================================================================== */
+function range() {
+  const f = S.filter;
+  let from = -Infinity, to = Infinity;
+  if (f.from) from = Date.parse(f.from + "T00:00:00");
+  if (f.to) to = Date.parse(f.to + "T23:59:59.999");
+  if (!f.from && !f.to && f.period !== "all") {
+    if (f.period === "ytd") from = new Date(new Date().getFullYear(), 0, 1).getTime();
+    else from = Date.now() - Number(f.period) * 86400000;
+  }
+  return [from, to];
+}
+function filtered() {
+  const [from, to] = range();
+  const m = S.filter.market;
+  const orders = S.orders.filter((o) => o.time >= from && o.time <= to && (m === "all" || o.market === m));
+  const funding = m === "spot" ? [] : S.funding.filter((x) => x.t >= from && x.t <= to);
+  return { orders, funding };
+}
+
+function metrics(orders, funding = []) {
+  const closed = orders.filter((o) => o.closing);
+  const wins = closed.filter((o) => o.pnl > 0), losses = closed.filter((o) => o.pnl < 0);
+  const sw = wins.reduce((a, o) => a + o.pnl, 0), sl = losses.reduce((a, o) => a + o.pnl, 0);
+  const fund = funding.reduce((a, x) => a + x.pnl, 0);
+  const net = orders.reduce((a, o) => a + o.pnl, 0) + fund;
+  const fees = orders.reduce((a, o) => a + o.fee, 0);
+  const volume = orders.reduce((a, o) => a + o.volume, 0);
+  // equity
+  const events = [...orders.map((o) => ({ t: o.timeEnd, v: o.pnl })), ...funding.map((x) => ({ t: x.t, v: x.pnl }))].sort((a, b) => a.t - b.t);
+  let eq = 0, peak = 0, mdd = 0;
+  const curve = [];
+  for (const e of events) {
+    eq += e.v;
+    peak = Math.max(peak, eq);
+    mdd = Math.min(mdd, eq - peak);
+    curve.push({ x: e.t, y: eq });
+  }
+  let cw = 0, cl = 0, mw = 0, ml = 0;
+  for (const o of closed) {
+    if (o.pnl > 0) { cw++; cl = 0; } else if (o.pnl < 0) { cl++; cw = 0; }
+    mw = Math.max(mw, cw); ml = Math.max(ml, cl);
+  }
+  const days = new Map();
+  for (const e of events) { const k = dayKey(e.t); days.set(k, (days.get(k) || 0) + e.v); }
+  const dayVals = [...days.values()];
+  return {
+    net, fees, volume, fund, curve, mdd, days,
+    count: orders.length, closed: closed.length, wins: wins.length, losses: losses.length,
+    winrate: closed.length ? wins.length / closed.length : 0,
+    pf: sl ? sw / -sl : sw > 0 ? Infinity : 0,
+    avgWin: wins.length ? sw / wins.length : 0, avgLoss: losses.length ? sl / losses.length : 0,
+    expectancy: closed.length ? (sw + sl) / closed.length : 0,
+    best: closed.reduce((a, o) => (o.pnl > (a?.pnl ?? -Infinity) ? o : a), null),
+    worst: closed.reduce((a, o) => (o.pnl < (a?.pnl ?? Infinity) ? o : a), null),
+    maxWinStreak: mw, maxLossStreak: ml,
+    greenDays: dayVals.filter((v) => v > 0).length, redDays: dayVals.filter((v) => v < 0).length,
+    bestDay: dayVals.length ? Math.max(...dayVals) : 0, worstDay: dayVals.length ? Math.min(...dayVals) : 0,
+  };
+}
+
+/* ==================================================================
+   Рендер
+   ================================================================== */
+let currentTab = "dash";
+function render() {
+  const total = S.trades.length;
+  $("#dataInfo").textContent = total ? `${NF0.format(total)} сделок · ${NF0.format(S.orders.length)} ордеров` : "";
+  if (currentTab === "dash") renderDash();
+  if (currentTab === "trades") renderTrades();
+  if (currentTab === "calendar") renderCalendar();
+  if (currentTab === "journal") renderJournal();
+  if (currentTab === "settings") renderSettings();
+}
+
+function emptyState() {
+  return `<div class="card empty" style="grid-column:1/-1"><b>Пока нет сделок</b>Подключи API-ключ Binance и запусти синхронизацию — или импортируй файл истории.<br><br><button class="btn" onclick="switchTab('settings')">Подключить Binance</button></div>`;
+}
+
+function kpi(l, v, s = "", c = "", hero = false, extra = "") {
+  return `<div class="card kpi${hero ? " hero" : ""}"><div class="l">${l}</div><div class="v ${c}">${v}</div>${s ? `<div class="s">${s}</div>` : ""}${extra}</div>`;
+}
+
+const CH = { grid: "rgba(31,41,71,.6)", tick: "#5b6690", green: "#00d68f", red: "#ff4d6d", accent: "#00e5ff", violet: "#7c5cff" };
+Chart.defaults.color = CH.tick;
+Chart.defaults.font.family = "Inter, system-ui, sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.plugins.legend.display = false;
+Chart.defaults.plugins.tooltip.backgroundColor = "#141b33";
+Chart.defaults.plugins.tooltip.borderColor = "#2a3660";
+Chart.defaults.plugins.tooltip.borderWidth = 1;
+Chart.defaults.plugins.tooltip.padding = 10;
+Chart.defaults.maintainAspectRatio = false;
+
+function chart(id, cfg) {
+  S.charts[id]?.destroy();
+  S.charts[id] = new Chart($("#" + id), cfg);
+}
+const pnlColors = (arr, a = 1) => arr.map((v) => (v >= 0 ? `rgba(0,214,143,${a})` : `rgba(255,77,109,${a})`));
+const scales = (extra = {}) => ({
+  x: { grid: { display: false }, ...extra.x },
+  y: { grid: { color: CH.grid }, border: { display: false }, ticks: { callback: (v) => usd(v, false) }, ...extra.y },
+});
+const tipUsd = { callbacks: { label: (c) => usd(c.parsed.y ?? c.parsed) } };
+
+function renderDash() {
+  const { orders, funding } = filtered();
+  if (!S.orders.length) { $("#kpis").innerHTML = emptyState(); return; }
+  const M = metrics(orders, funding);
+  const wr = (M.winrate * 100).toFixed(1);
+  $("#kpis").innerHTML =
+    kpi("Чистый PnL", usd(M.net), `${NF0.format(M.closed)} закрытий · комиссии ${usd(-M.fees)}${M.fund ? " · funding " + usd(M.fund) : ""}`, cls(M.net), true) +
+    kpi("Win rate", wr + "%", `${M.wins} / ${M.losses}`, "", false, `<div class="bar2"><i style="width:${wr}%"></i></div>`) +
+    kpi("Profit factor", M.pf === Infinity ? "∞" : M.pf.toFixed(2), M.pf >= 1.5 ? "Отлично" : M.pf >= 1 ? "В плюсе" : "Ниже 1 — сливаешь", M.pf >= 1 ? "pos" : "neg") +
+    kpi("Матожидание", usd(M.expectancy), "на закрытую сделку", cls(M.expectancy)) +
+    kpi("Средний профит / лосс", `<span class="pos">${usd(M.avgWin, false)}</span> <span style="color:var(--dim)">/</span> <span class="neg">${usd(M.avgLoss)}</span>`,
+        M.avgLoss ? `R:R ${(M.avgWin / -M.avgLoss).toFixed(2)}` : "") +
+    kpi("Макс. просадка", usd(M.mdd), "от пика кривой капитала", M.mdd < 0 ? "neg" : "") +
+    kpi("Лучшая / худшая", `<span class="pos">${usd(M.best?.pnl ?? 0)}</span>`, `<span class="neg">${usd(M.worst?.pnl ?? 0)}</span> · ${esc(M.best?.symbol ?? "")}`) +
+    kpi("Серии", `<span class="pos">${M.maxWinStreak}</span> / <span class="neg">${M.maxLossStreak}</span>`, "подряд прибыльных / убыточных") +
+    kpi("Дни", `<span class="pos">${M.greenDays}</span> / <span class="neg">${M.redDays}</span>`, `лучший ${usd(M.bestDay)} · худший ${usd(M.worstDay)}`) +
+    kpi("Оборот", usd(M.volume, false), `${NF0.format(M.count)} ордеров`);
+
+  // Equity
+  const grad = (ctx) => {
+    const { chart: c } = ctx; const { ctx: g, chartArea: a } = c;
+    if (!a) return null;
+    const gr = g.createLinearGradient(0, a.top, 0, a.bottom);
+    const up = (M.curve.at(-1)?.y ?? 0) >= 0;
+    gr.addColorStop(0, up ? "rgba(0,229,255,.35)" : "rgba(255,77,109,.3)");
+    gr.addColorStop(1, "rgba(0,229,255,0)");
+    return gr;
+  };
+  // прореживаем точки для скорости
+  const step = Math.ceil(M.curve.length / 1500) || 1;
+  const pts = M.curve.filter((_, i) => i % step === 0 || i === M.curve.length - 1);
+  $("#eqInfo").textContent = pts.length ? usd(M.net) : "";
+  chart("cEquity", {
+    type: "line",
+    data: { datasets: [{ data: pts, borderColor: (M.net >= 0 ? CH.accent : CH.red), backgroundColor: grad, fill: true, pointRadius: 0, borderWidth: 2, tension: .15 }] },
+    options: {
+      interaction: { mode: "index", intersect: false },
+      scales: scales({ x: { type: "linear", ticks: { maxTicksLimit: 8, callback: (v) => new Date(v).toLocaleDateString("ru-RU", { month: "short", year: "2-digit" }) } } }),
+      plugins: { tooltip: { callbacks: { title: (c) => fdt(c[0].parsed.x), label: (c) => usd(c.parsed.y) } } },
+    },
+  });
+
+  // Daily
+  const days = [...M.days.entries()].sort();
+  const lastDays = days.slice(-180);
+  chart("cDaily", {
+    type: "bar",
+    data: { labels: lastDays.map((d) => d[0]), datasets: [{ data: lastDays.map((d) => d[1]), backgroundColor: pnlColors(lastDays.map((d) => d[1]), .85), borderRadius: 3 }] },
+    options: { scales: scales({ x: { ticks: { maxTicksLimit: 12, callback(v) { return this.getLabelForValue(v).slice(5); } } } }), plugins: { tooltip: tipUsd } },
+  });
+
+  // Symbols
+  const bySym = groupSum(orders, (o) => o.symbol);
+  const syms = [...bySym.entries()].sort((a, b) => Math.abs(b[1].pnl) - Math.abs(a[1].pnl)).slice(0, 12).sort((a, b) => b[1].pnl - a[1].pnl);
+  chart("cSymbol", {
+    type: "bar",
+    data: { labels: syms.map((s) => s[0]), datasets: [{ data: syms.map((s) => s[1].pnl), backgroundColor: pnlColors(syms.map((s) => s[1].pnl), .85), borderRadius: 4 }] },
+    options: { indexAxis: "y", scales: { x: { grid: { color: CH.grid }, ticks: { callback: (v) => usd(v, false) } }, y: { grid: { display: false } } }, plugins: { tooltip: { callbacks: { label: (c) => usd(c.parsed.x) } } } },
+  });
+
+  // Weekday
+  const dowNames = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+  const dow = Array(7).fill(0);
+  orders.forEach((o) => (dow[(new Date(o.timeEnd).getDay() + 6) % 7] += o.pnl));
+  chart("cDow", { type: "bar", data: { labels: dowNames, datasets: [{ data: dow, backgroundColor: pnlColors(dow, .85), borderRadius: 4 }] }, options: { scales: scales(), plugins: { tooltip: tipUsd } } });
+
+  // Hours
+  const hr = Array(24).fill(0);
+  orders.forEach((o) => (hr[new Date(o.timeEnd).getHours()] += o.pnl));
+  chart("cHour", { type: "bar", data: { labels: hr.map((_, i) => i), datasets: [{ data: hr, backgroundColor: pnlColors(hr, .85), borderRadius: 3 }] }, options: { scales: scales(), plugins: { tooltip: tipUsd } } });
+
+  // Long/short
+  const closed = orders.filter((o) => o.closing);
+  const L = metrics(closed.filter((o) => o.dir === "long")), Sh = metrics(closed.filter((o) => o.dir === "short"));
+  chart("cSide", {
+    type: "bar",
+    data: { labels: [`Long · WR ${(L.winrate * 100).toFixed(0)}% · ${L.closed}`, `Short · WR ${(Sh.winrate * 100).toFixed(0)}% · ${Sh.closed}`],
+            datasets: [{ data: [L.net, Sh.net], backgroundColor: pnlColors([L.net, Sh.net], .85), borderRadius: 6, maxBarThickness: 70 }] },
+    options: { scales: scales(), plugins: { tooltip: tipUsd } },
+  });
+
+  renderHeat();
+  // Recent
+  const rec = orders.filter((o) => o.closing).slice(-8).reverse();
+  $("#recent").innerHTML = rec.length ? `<table><tbody>${rec.map((o) => `<tr data-k="${esc(o.key)}">
+      <td style="color:var(--muted)">${fdt(o.timeEnd)}</td><td><b>${esc(o.symbol)}</b></td><td>${badgeSide(o)}</td>
+      <td class="r ${cls(o.pnl)}"><b>${usd(o.pnl)}</b></td></tr>`).join("")}</tbody></table>` : '<div class="empty">Нет закрытых сделок в периоде</div>';
+  $$("#recent tr").forEach((tr) => (tr.onclick = () => openOrder(tr.dataset.k)));
+}
+
+function renderHeat() {
+  const m = S.filter.market;
+  const all = metrics(S.orders.filter((o) => m === "all" || o.market === m), m === "spot" ? [] : S.funding).days;
+  const end = new Date(); end.setHours(0, 0, 0, 0);
+  const start = new Date(end); start.setDate(start.getDate() - 364 - ((start.getDay() + 6) % 7));
+  const max = Math.max(1, ...[...all.values()].map(Math.abs));
+  let html = "", col = "";
+  for (let d = new Date(start), i = 0; d <= end; d.setDate(d.getDate() + 1), i++) {
+    const v = all.get(dayKey(d));
+    const a = v ? 0.25 + 0.75 * Math.min(1, Math.abs(v) / (max * 0.5)) : 0;
+    const bg = v ? (v > 0 ? `rgba(0,214,143,${a})` : `rgba(255,77,109,${a})`) : "";
+    col += `<i title="${dayKey(d)}${v ? " · " + usd(v) : ""}" style="${bg ? "background:" + bg : ""}"></i>`;
+    if ((d.getDay() + 6) % 7 === 6) { html += `<div class="col">${col}</div>`; col = ""; }
+  }
+  if (col) html += `<div class="col">${col}</div>`;
+  $("#heat").innerHTML = html;
+  $("#heat").scrollLeft = 9999;
+}
+
+function groupSum(orders, keyFn) {
+  const m = new Map();
+  for (const o of orders) {
+    const keys = [].concat(keyFn(o) ?? []);
+    for (const k of keys) {
+      if (k == null || k === "") continue;
+      let g = m.get(k);
+      if (!g) m.set(k, (g = { pnl: 0, n: 0, closed: 0, wins: 0 }));
+      g.pnl += o.pnl; g.n++;
+      if (o.closing) { g.closed++; if (o.pnl > 0) g.wins++; }
+    }
+  }
+  return m;
+}
+
+const badgeSide = (o) => `<span class="badge ${(o.market === "spot" ? o.side === "BUY" : o.dir === "long") ? "b-buy" : "b-sell"}">${o.label}</span>`;
+const badgeMkt = (o) => `<span class="badge ${o.market === "spot" ? "b-spot" : "b-fut"}">${o.market === "spot" ? "SPOT" : "PERP"}</span>`;
+
+/* ---------- Сделки ---------- */
+function tableRows() {
+  const { orders } = filtered();
+  const t = S.tbl, q = t.q.toLowerCase();
+  let rows = orders.filter((o) => {
+    const n = S.notes.get(o.key);
+    if (t.result === "closed" && !o.closing) return false;
+    if (t.result === "win" && !(o.closing && o.pnl > 0)) return false;
+    if (t.result === "loss" && !(o.closing && o.pnl < 0)) return false;
+    if (t.noted === "noted" && !n) return false;
+    if (t.noted === "unnoted" && n) return false;
+    if (q) {
+      const hay = [o.symbol, o.label, n?.setup, n?.emotion, ...(n?.tags || []), ...(n?.mistakes || []), n?.notes].join(" ").toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  const k = t.sort;
+  rows.sort((a, b) => {
+    const va = k === "time" ? a.time : a[k], vb = k === "time" ? b.time : b[k];
+    return (va > vb ? 1 : va < vb ? -1 : 0) * t.dir;
+  });
+  return rows;
+}
+
+function renderTrades() {
+  const rows = tableRows();
+  const per = 50, pages = Math.max(1, Math.ceil(rows.length / per));
+  S.tbl.page = Math.min(S.tbl.page, pages - 1);
+  const slice = rows.slice(S.tbl.page * per, S.tbl.page * per + per);
+  $("#tBody").innerHTML = slice.length ? slice.map((o) => {
+    const n = S.notes.get(o.key);
+    const j = n ? [n.setup && `<span class="chip on">${esc(n.setup)}</span>`, ...(n.tags || []).slice(0, 2).map((x) => `<span class="chip">#${esc(x)}</span>`), n.rating ? `<span style="color:var(--yellow)">${"★".repeat(n.rating)}</span>` : ""].filter(Boolean).join("")
+      : `<span style="color:var(--dim)">＋</span>`;
+    return `<tr data-k="${esc(o.key)}">
+      <td>${fdt(o.time)}</td><td>${badgeMkt(o)}</td><td><b>${esc(o.symbol)}</b></td><td>${badgeSide(o)}</td>
+      <td class="r mono">${num(o.price)}</td><td class="r mono">${num(o.qty)}</td><td class="r">${usd(o.volume, false)}</td>
+      <td class="r" style="color:var(--muted)">${usd(o.fee, false)}</td>
+      <td class="r ${cls(o.pnl)}"><b>${o.closing || Math.abs(o.pnl) > 0.005 ? usd(o.pnl) : "—"}</b>${o.unmatched ? ' <span title="Часть продажи без известной цены покупки" style="color:var(--yellow)">*</span>' : ""}</td>
+      <td>${j}</td></tr>`;
+  }).join("") : `<tr><td colspan="10" class="empty">Ничего не найдено</td></tr>`;
+  $$("#tBody tr[data-k]").forEach((tr) => (tr.onclick = () => openOrder(tr.dataset.k)));
+  const sumPnl = rows.reduce((a, o) => a + o.pnl, 0);
+  $("#tInfo").innerHTML = `${NF0.format(rows.length)} ордеров · итого <b class="${cls(sumPnl)}">${usd(sumPnl)}</b> · стр. ${S.tbl.page + 1}/${pages}`;
+  $$("th[data-s]").forEach((th) => {
+    th.textContent = th.textContent.replace(/ [↑↓]$/, "") + (th.dataset.s === S.tbl.sort ? (S.tbl.dir > 0 ? " ↑" : " ↓") : "");
+  });
+}
+$$("th[data-s]").forEach((th) => (th.onclick = () => {
+  const s = th.dataset.s;
+  S.tbl.dir = S.tbl.sort === s ? -S.tbl.dir : -1;
+  S.tbl.sort = s;
+  renderTrades();
+}));
+$("#tSearch").oninput = (e) => { S.tbl.q = e.target.value; S.tbl.page = 0; renderTrades(); };
+$("#tPrev").onclick = () => { S.tbl.page = Math.max(0, S.tbl.page - 1); renderTrades(); };
+$("#tNext").onclick = () => { S.tbl.page++; renderTrades(); };
+seg("#tResult", (v) => { S.tbl.result = v; S.tbl.page = 0; renderTrades(); });
+seg("#tNoted", (v) => { S.tbl.noted = v; S.tbl.page = 0; renderTrades(); });
+
+$("#exportCsv").onclick = () => {
+  const rows = tableRows();
+  const head = ["time", "market", "symbol", "type", "avg_price", "qty", "volume_usd", "fee_usd", "pnl_usd", "setup", "tags", "emotion", "mistakes", "rating", "notes"];
+  const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const lines = [head.join(",")].concat(rows.map((o) => {
+    const n = S.notes.get(o.key) || {};
+    return [new Date(o.time).toISOString(), o.market, o.symbol, o.label, o.price, o.qty, o.volume.toFixed(2), o.fee.toFixed(4), o.pnl.toFixed(4),
+      n.setup, (n.tags || []).join("|"), n.emotion, (n.mistakes || []).join("|"), n.rating, n.notes].map(q).join(",");
+  }));
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿" + lines.join("\n")], { type: "text/csv" }));
+  a.download = `journal-${dayKey(Date.now())}.csv`;
+  a.click();
+};
+
+/* ---------- Карточка ордера + журнал ---------- */
+function openOrder(key) {
+  const o = S.orders.find((x) => x.key === key);
+  if (!o) return;
+  const n = S.notes.get(key) || { tags: [], mistakes: [] };
+  const allSetups = [...new Set([...SETUPS, ...[...S.notes.values()].map((x) => x.setup).filter(Boolean)])];
+  const allTags = [...new Set([...S.notes.values()].flatMap((x) => x.tags || []))];
+  const st = { rating: n.rating || 0, emotion: n.emotion || "", mistakes: new Set(n.mistakes || []), tags: new Set(n.tags || []) };
+
+  $("#modalRoot").innerHTML = `<div class="modal-bg" id="mbg"><div class="modal">
+    <div class="mhead">
+      <div><div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">${badgeMkt(o)} ${badgeSide(o)}</div>
+      <h2>${esc(o.symbol)}</h2><div style="color:var(--muted);font-size:13px">${fdt(o.time)}${o.timeEnd - o.time > 60000 ? " → " + fdt(o.timeEnd) : ""}</div></div>
+      <button class="btn ghost sm x" id="mclose">✕</button>
+    </div>
+    <div style="font-size:30px;font-weight:800;letter-spacing:-.03em" class="${cls(o.pnl)}">${o.closing || Math.abs(o.pnl) > 0.005 ? usd(o.pnl) : "Открытие позиции"}</div>
+    <div class="mstats">
+      <div><small>Средняя цена</small><b class="mono">${num(o.price)}</b></div>
+      <div><small>Количество</small><b class="mono">${num(o.qty)}</b></div>
+      <div><small>Объём</small><b>${usd(o.volume, false)}</b></div>
+      <div><small>Комиссия</small><b>${usd(o.fee, false)}</b></div>
+      <div><small>PnL до комиссий</small><b class="${cls(o.gross)}">${usd(o.gross)}</b></div>
+      <div><small>${o.hold ? "Держал позицию" : "Исполнений"}</small><b>${o.hold ? dur(o.hold) : o.fills.length}</b></div>
+    </div>
+    ${o.unmatched ? '<div class="note warn">Часть проданного объёма куплена до начала загруженной истории (депозит, конвертация, earn) — PnL посчитан только для известной части.</div>' : ""}
+
+    <label>Сетап</label>
+    <input id="nSetup" list="setupList" value="${esc(n.setup || "")}" placeholder="Пробой, ретест…">
+    <datalist id="setupList">${allSetups.map((s) => `<option value="${esc(s)}">`).join("")}</datalist>
+
+    <label>Теги <span style="color:var(--dim)">(Enter — добавить)</span></label>
+    <div class="chips-pick" id="nTags"></div>
+    <input id="nTagIn" list="tagList" placeholder="#тег" style="margin-top:6px">
+    <datalist id="tagList">${allTags.map((s) => `<option value="${esc(s)}">`).join("")}</datalist>
+
+    <label>Эмоция</label><div class="chips-pick" id="nEmo">${EMOTIONS.map((e) => `<span class="chip" data-v="${esc(e)}">${esc(e)}</span>`).join("")}</div>
+    <label>Ошибки</label><div class="chips-pick" id="nMist">${MISTAKES.map((e) => `<span class="chip" data-v="${esc(e)}">${esc(e)}</span>`).join("")}</div>
+    <label>Оценка исполнения</label><div class="stars" id="nStars">${[1, 2, 3, 4, 5].map((i) => `<button data-v="${i}">★</button>`).join("")}</div>
+    <label>Заметки</label><textarea id="nNotes" placeholder="Почему вошёл, где был стоп, что сделал бы иначе…">${esc(n.notes || "")}</textarea>
+    <label>Скриншот (ссылка на TradingView / изображение)</label><input id="nShot" value="${esc(n.screenshot_url || "")}" placeholder="https://www.tradingview.com/x/…">
+    <div id="shotPrev"></div>
+    <div class="actions"><button class="btn" id="nSave">Сохранить</button>${S.notes.has(key) ? '<button class="btn danger" id="nDel">Очистить</button>' : ""}</div>
+
+    <h3 style="margin-top:26px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Исполнения (${o.fills.length})</h3>
+    <div class="tbl-wrap"><table><thead><tr><th>Время</th><th class="r">Цена</th><th class="r">Кол-во</th><th class="r">Комиссия</th>${o.market === "usdm" ? '<th class="r">Realized</th>' : ""}<th>Роль</th></tr></thead>
+    <tbody>${o.fills.map((f) => `<tr style="cursor:default"><td>${new Date(f.t).toLocaleString("ru-RU")}</td><td class="r mono">${num(f.price)}</td><td class="r mono">${num(f.qty)}</td>
+      <td class="r mono">${num(f.commission)} ${esc(f.commission_asset || "")}</td>${o.market === "usdm" ? `<td class="r ${cls(f.realized_pnl)}">${num(f.realized_pnl)}</td>` : ""}<td>${f.is_maker == null ? "—" : f.is_maker ? "maker" : "taker"}</td></tr>`).join("")}</tbody></table></div>
+  </div></div>`;
+
+  const paintTags = () => {
+    $("#nTags").innerHTML = [...st.tags].map((t) => `<span class="chip on" data-v="${esc(t)}">#${esc(t)} ✕</span>`).join("") || '<span style="color:var(--dim);font-size:12px">нет тегов</span>';
+    $$("#nTags .chip").forEach((c) => (c.onclick = () => { st.tags.delete(c.dataset.v); paintTags(); }));
+  };
+  const paint = () => {
+    $$("#nEmo .chip").forEach((c) => c.classList.toggle("on", c.dataset.v === st.emotion));
+    $$("#nMist .chip").forEach((c) => c.classList.toggle("on", st.mistakes.has(c.dataset.v)));
+    $$("#nStars button").forEach((b) => b.classList.toggle("on", +b.dataset.v <= st.rating));
+  };
+  const shot = () => {
+    const u = $("#nShot").value.trim();
+    $("#shotPrev").innerHTML = /^https?:\/\/.+\.(png|jpe?g|gif|webp)(\?.*)?$/i.test(u) ? `<img class="shot" src="${esc(u)}" alt="">`
+      : /^https?:\/\//.test(u) ? `<a href="${esc(u)}" target="_blank" rel="noopener" style="font-size:13px">Открыть скриншот ↗</a>` : "";
+  };
+  paintTags(); paint(); shot();
+  $("#nShot").oninput = shot;
+  $$("#nEmo .chip").forEach((c) => (c.onclick = () => { st.emotion = st.emotion === c.dataset.v ? "" : c.dataset.v; paint(); }));
+  $$("#nMist .chip").forEach((c) => (c.onclick = () => { st.mistakes.has(c.dataset.v) ? st.mistakes.delete(c.dataset.v) : st.mistakes.add(c.dataset.v); paint(); }));
+  $$("#nStars button").forEach((b) => (b.onclick = () => { st.rating = st.rating === +b.dataset.v ? 0 : +b.dataset.v; paint(); }));
+  $("#nTagIn").onkeydown = (e) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      const v = e.target.value.replace(/^#/, "").trim();
+      if (v) st.tags.add(v);
+      e.target.value = ""; paintTags();
+    }
+  };
+  const close = () => { $("#modalRoot").innerHTML = ""; document.removeEventListener("keydown", onEsc); };
+  const onEsc = (e) => e.key === "Escape" && close();
+  document.addEventListener("keydown", onEsc);
+  $("#mclose").onclick = close;
+  $("#mbg").onclick = (e) => e.target.id === "mbg" && close();
+
+  $("#nSave").onclick = async () => {
+    const pending = $("#nTagIn").value.replace(/^#/, "").trim();
+    if (pending) st.tags.add(pending);
+    const row = {
+      user_id: USER.id, order_key: key,
+      setup: $("#nSetup").value.trim() || null, tags: [...st.tags], emotion: st.emotion || null,
+      rating: st.rating || null, mistakes: [...st.mistakes], notes: $("#nNotes").value.trim() || null,
+      screenshot_url: $("#nShot").value.trim() || null, updated_at: new Date().toISOString(),
+    };
+    const { error } = await sb.from("trade_notes").upsert(row);
+    if (error) return toast(error.message, true);
+    S.notes.set(key, row);
+    toast("Сохранено");
+    close(); render();
+  };
+  $("#nDel")?.addEventListener("click", async () => {
+    const { error } = await sb.from("trade_notes").delete().eq("user_id", USER.id).eq("order_key", key);
+    if (error) return toast(error.message, true);
+    S.notes.delete(key); close(); render();
+  });
+}
+
+/* ---------- Календарь ---------- */
+function renderCalendar() {
+  const { orders, funding } = filtered();
+  const days = new Map();
+  for (const o of orders) { const k = dayKey(o.timeEnd); const d = days.get(k) || { pnl: 0, n: 0 }; d.pnl += o.pnl; if (o.closing) d.n++; days.set(k, d); }
+  for (const f of funding) { const k = dayKey(f.t); const d = days.get(k) || { pnl: 0, n: 0 }; d.pnl += f.pnl; days.set(k, d); }
+
+  const y = S.cal.getFullYear(), m = S.cal.getMonth();
+  $("#calTitle").textContent = S.cal.toLocaleDateString("ru-RU", { month: "long", year: "numeric" });
+  const first = new Date(y, m, 1);
+  const start = new Date(first); start.setDate(1 - ((first.getDay() + 6) % 7));
+  const max = Math.max(1, ...[...days.values()].map((d) => Math.abs(d.pnl)));
+  let html = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((d) => `<div class="dow">${d}</div>`).join("") + '<div class="dow wk">Неделя</div>';
+  let monthSum = 0, monthN = 0, wk = 0, wkN = 0;
+  const today = dayKey(Date.now());
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(start); d.setDate(start.getDate() + i);
+    const k = dayKey(d), v = days.get(k), inM = d.getMonth() === m;
+    if (v) { wk += v.pnl; wkN += v.n; if (inM) { monthSum += v.pnl; monthN += v.n; } }
+    const a = v ? 0.12 + 0.5 * Math.min(1, Math.abs(v.pnl) / max) : 0;
+    const bg = v && v.pnl ? `background:${v.pnl > 0 ? `rgba(0,214,143,${a})` : `rgba(255,77,109,${a})`};border-color:${v.pnl > 0 ? "rgba(0,214,143,.4)" : "rgba(255,77,109,.4)"}` : "";
+    html += `<div class="cday${inM ? "" : " out"}${k === today ? " today" : ""}" style="${bg}"><span class="d">${d.getDate()}</span>${v ? `<span class="p ${cls(v.pnl)}">${usd(v.pnl)}</span><span class="n">${v.n} сдел.</span>` : ""}</div>`;
+    if (i % 7 === 6) {
+      html += `<div class="cweek"><span style="font-size:11px;color:var(--dim)">Неделя</span><b class="${cls(wk)}">${wkN || wk ? usd(wk) : "—"}</b><span style="font-size:11px;color:var(--muted)">${wkN} сдел.</span></div>`;
+      wk = 0; wkN = 0;
+      if (i >= 34 && new Date(start.getTime() + (i + 1) * 864e5).getMonth() !== m) break;
+    }
+  }
+  $("#cal").innerHTML = html;
+  $("#calSum").innerHTML = `<div style="font-size:11px;color:var(--muted)">Итог месяца</div><b style="font-size:20px" class="${cls(monthSum)}">${usd(monthSum)}</b> <span style="color:var(--muted);font-size:12px">· ${monthN} сдел.</span>`;
+}
+$("#calPrev").onclick = () => { S.cal = new Date(S.cal.getFullYear(), S.cal.getMonth() - 1, 1); renderCalendar(); };
+$("#calNext").onclick = () => { S.cal = new Date(S.cal.getFullYear(), S.cal.getMonth() + 1, 1); renderCalendar(); };
+
+/* ---------- Аналитика журнала ---------- */
+function statTable(map, label) {
+  const rows = [...map.entries()].sort((a, b) => b[1].pnl - a[1].pnl);
+  if (!rows.length) return `<div class="empty" style="padding:24px">Пока нет данных — размечай сделки</div>`;
+  return `<table><thead><tr><th>${label}</th><th class="r">Сделок</th><th class="r">Win rate</th><th class="r">PnL</th><th class="r">Средний</th></tr></thead><tbody>
+    ${rows.map(([k, g]) => `<tr style="cursor:default"><td><b>${esc(k)}</b></td><td class="r">${g.n}</td><td class="r">${g.closed ? ((g.wins / g.closed) * 100).toFixed(0) + "%" : "—"}</td>
+    <td class="r ${cls(g.pnl)}"><b>${usd(g.pnl)}</b></td><td class="r ${cls(g.pnl)}">${usd(g.pnl / g.n)}</td></tr>`).join("")}</tbody></table>`;
+}
+function renderJournal() {
+  const { orders } = filtered();
+  const N = (o) => S.notes.get(o.key);
+  $("#jSetup").innerHTML = statTable(groupSum(orders, (o) => N(o)?.setup), "Сетап");
+  $("#jEmotion").innerHTML = statTable(groupSum(orders, (o) => N(o)?.emotion), "Эмоция");
+  $("#jTags").innerHTML = statTable(groupSum(orders, (o) => (N(o)?.tags || []).map((t) => "#" + t)), "Тег");
+  $("#jMistakes").innerHTML = statTable(groupSum(orders, (o) => N(o)?.mistakes || []), "Ошибка");
+  $("#jRating").innerHTML = statTable(groupSum(orders, (o) => (N(o)?.rating ? "★".repeat(N(o).rating) : null)), "Оценка");
+  const buckets = [[0, 5 * 6e4, "< 5 мин"], [5 * 6e4, 36e5, "5 мин – 1 ч"], [36e5, 4 * 36e5, "1 – 4 ч"], [4 * 36e5, 864e5, "4 – 24 ч"], [864e5, 7 * 864e5, "1 – 7 дн"], [7 * 864e5, Infinity, "> 7 дн"]];
+  const hold = groupSum(orders.filter((o) => o.hold != null), (o) => buckets.find((b) => o.hold >= b[0] && o.hold < b[1])?.[2]);
+  $("#jHold").innerHTML = statTable(new Map(buckets.filter((b) => hold.has(b[2])).map((b) => [b[2], hold.get(b[2])])), "Удержание");
+}
+
+/* ==================================================================
+   Настройки: ключи, синхронизация, импорт
+   ================================================================== */
+let KEY = null, JOB = null;
+async function loadKeyAndJob() {
+  const [{ data: k }, { data: j }] = await Promise.all([
+    sb.from("exchange_keys").select("api_key,permissions,updated_at").maybeSingle(),
+    sb.from("sync_jobs").select("mode,status,pos,stats,error,started_at,updated_at,finished_at").maybeSingle(),
+  ]);
+  KEY = k; JOB = j;
+  updatePill();
+}
+function updatePill() {
+  const dot = $("#syncDot"), txt = $("#syncText");
+  dot.className = "dot";
+  if (S.syncing) { dot.classList.add("run"); txt.textContent = "Синхронизация…"; }
+  else if (!KEY) txt.textContent = "Binance не подключён";
+  else if (JOB?.status === "running") { dot.classList.add("run"); txt.textContent = "Загрузка на паузе"; }
+  else if (JOB?.status === "error") txt.textContent = "Ошибка синхронизации";
+  else if (JOB?.finished_at) { dot.classList.add("on"); txt.textContent = "Синхр. " + fdt(JOB.finished_at); }
+  else { dot.classList.add("on"); txt.textContent = "Ключ подключён"; }
+  $("#quickSync").disabled = S.syncing || !KEY;
+  $("#quickSync").textContent = JOB?.status === "running" && !S.syncing ? "Продолжить загрузку" : "Синхронизировать";
+}
+
+function renderSettings() {
+  const p = KEY?.permissions || {};
+  $("#keyStatus").innerHTML = KEY
+    ? `<span>Ключ</span><span class="mono">${esc(KEY.api_key.slice(0, 6))}…${esc(KEY.api_key.slice(-4))}</span>
+       <span>Обновлён</span><span>${fdt(KEY.updated_at)}</span>
+       <span>Права</span><span>${[p.reading && "чтение", p.spotTrading && "спот-торговля", p.futures && "фьючерсы"].filter(Boolean).join(", ") || "—"}</span>`
+    : `<span>Статус</span><span style="color:var(--yellow)">не подключён</span>`;
+  const st = JOB?.stats || {};
+  $("#syncInfo").innerHTML = JOB
+    ? `<span>Статус</span><span>${{ running: "в процессе / на паузе", done: "готово", error: "ошибка" }[JOB.status] || JOB.status}</span>
+       <span>Режим</span><span>${JOB.mode === "full" ? "полная история" : "быстрая"}</span>
+       <span>Последняя</span><span>${fdt(JOB.finished_at || JOB.updated_at)}</span>
+       <span>Новых сделок</span><span>${NF0.format(st.inserted || 0)}</span>
+       ${JOB.error ? `<span>Ошибка</span><span class="neg">${esc(JOB.error)}</span>` : ""}`
+    : `<span>Статус</span><span>ещё не запускалась</span>`;
+  const spot = S.trades.filter((t) => t.market === "spot").length;
+  const first = S.trades[0]?.t;
+  $("#dataStats").innerHTML = `<span>Сделок spot</span><span>${NF0.format(spot)}</span>
+    <span>Сделок futures</span><span>${NF0.format(S.trades.length - spot)}</span>
+    <span>Из файлов</span><span>${NF0.format(S.trades.filter((t) => t.source === "csv").length)}</span>
+    <span>Funding-записей</span><span>${NF0.format(S.funding.length)}</span>
+    <span>Пар</span><span>${new Set(S.trades.map((t) => t.symbol)).size}</span>
+    <span>История с</span><span>${first ? new Date(first).toLocaleDateString("ru-RU") : "—"}</span>
+    <span>Заметок</span><span>${S.notes.size}</span>`;
+  $("#syncBtn").disabled = $("#fullSyncBtn").disabled = S.syncing || !KEY;
+  $("#delKey").disabled = !KEY;
+}
+
+$("#keyForm").onsubmit = async (e) => {
+  e.preventDefault();
+  const btn = $("#saveKey"); btn.disabled = true; btn.innerHTML = '<span class="loader"></span> Проверяю…';
+  try {
+    const r = await call("save-keys", { apiKey: $("#apiKey").value.trim(), apiSecret: $("#apiSecret").value.trim() });
+    toast("Ключ подключён ✓");
+    (r.warnings || []).forEach((w) => toast(w));
+    $("#apiKey").value = $("#apiSecret").value = "";
+    await loadKeyAndJob(); renderSettings();
+    if (!S.trades.length) runSync("full", true);
+  } catch (err) { toast(err.message, true); }
+  btn.disabled = false; btn.textContent = "Проверить и сохранить";
+};
+$("#delKey").onclick = async () => {
+  if (!confirm("Удалить API-ключ? Сделки и заметки останутся.")) return;
+  try { await call("save-keys", { delete: true }); toast("Ключ удалён"); await loadKeyAndJob(); renderSettings(); }
+  catch (err) { toast(err.message, true); }
+};
+
+function slog(msg) {
+  const el = $("#syncLog");
+  el.textContent = `[${new Date().toLocaleTimeString("ru-RU")}] ${msg}\n` + el.textContent.slice(0, 20000);
+}
+
+async function runSync(mode = "auto", restart = false) {
+  if (S.syncing) return;
+  S.syncing = true; S.stopSync = false;
+  $("#stopSync").classList.remove("hidden");
+  updatePill(); renderSettings();
+  slog(`Старт: ${mode === "full" ? "полная загрузка истории" : "синхронизация"}`);
+  let body = { mode, restart }, fails = 0, lastIns = 0, loadedAt = Date.now();
+  try {
+    while (!S.stopSync) {
+      let r;
+      try {
+        r = await call("sync", body);
+        fails = 0;
+      } catch (err) {
+        // 4xx — ошибка ключа/Binance, повтор не поможет
+        if (err.status && err.status < 500 && err.status !== 429) throw err;
+        if (++fails > 4) throw err;
+        slog(`Сбой (${err.message}), повтор через ${fails * 5} c`);
+        await sleep(fails * 5000);
+        continue;
+      }
+      body = {};
+      const pct = r.total ? (r.pos / r.total) * 100 : 100;
+      $("#syncBar").style.width = pct.toFixed(1) + "%";
+      $("#syncNow").textContent = `${r.pos} / ${r.total} задач · ${r.current || "готово"} · новых сделок: ${NF0.format(r.stats?.inserted || 0)}`;
+      $("#syncText").textContent = `Синхр. ${pct.toFixed(0)}%`;
+      if ((r.stats?.inserted || 0) !== lastIns) {
+        slog(`+${(r.stats.inserted - lastIns)} сделок (${r.current || "…"})`);
+        lastIns = r.stats.inserted;
+        // подгружаем данные по ходу, чтобы дашборд оживал
+        if (Date.now() - loadedAt > 60000) { loadedAt = Date.now(); loadData().catch(() => {}); }
+      }
+      if (r.status === "done") {
+        (r.stats?.warnings || []).forEach((w) => slog("⚠ " + w));
+        slog(`Готово. Новых сделок: ${r.stats?.inserted || 0}`);
+        toast(`Синхронизация завершена: +${r.stats?.inserted || 0} сделок`);
+        break;
+      }
+      if (r.waitMs) {
+        slog(`Лимит API Binance — пауза ${Math.ceil(r.waitMs / 1000)} c`);
+        await sleep(r.waitMs);
+      }
+    }
+    if (S.stopSync) slog("Пауза. Нажми «Синхронизировать», чтобы продолжить с того же места.");
+  } catch (err) {
+    slog("Ошибка: " + err.message);
+    toast(err.message, true);
+  }
+  S.syncing = false;
+  $("#stopSync").classList.add("hidden");
+  await loadKeyAndJob();
+  await loadData();
+}
+$("#syncBtn").onclick = () => runSync("auto", false);
+$("#quickSync").onclick = () => runSync("auto", false);
+$("#fullSyncBtn").onclick = () => confirm("Проверить все пары Binance? Это займёт 10–15 минут.") && runSync("full", true);
+$("#stopSync").onclick = () => { S.stopSync = true; slog("Остановлю после текущей порции…"); };
+
+/* ---------- Импорт CSV / XLSX ---------- */
+let IMPORT = null;
+function parseCSV(text) {
+  const rows = []; let row = [], cur = "", q = false;
+  const delim = (text.split("\n")[0].match(/;/g) || []).length > (text.split("\n")[0].match(/,/g) || []).length ? ";" : ",";
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; }
+      else cur += c;
+    } else if (c === '"') q = true;
+    else if (c === delim) { row.push(cur); cur = ""; }
+    else if (c === "\n" || c === "\r") {
+      if (c === "\r" && text[i + 1] === "\n") i++;
+      row.push(cur); cur = "";
+      if (row.some((x) => x !== "")) rows.push(row);
+      row = [];
+    } else cur += c;
+  }
+  row.push(cur);
+  if (row.some((x) => x !== "")) rows.push(row);
+  return rows;
+}
+async function loadXLSX() {
+  if (window.XLSX) return;
+  await new Promise((res, rej) => {
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+    s.onload = res; s.onerror = () => rej(new Error("Не удалось загрузить парсер XLSX"));
+    document.head.appendChild(s);
+  });
+}
+/** "0.0012BTC" → { n: 0.0012, a: "BTC" } */
+function numAsset(v) {
+  const s = String(v ?? "").replace(/\s/g, "").replace(/,(?=\d{3}\b)/g, "");
+  const m = s.match(/^(-?[\d.]+(?:e-?\d+)?)([A-Za-z][A-Za-z0-9]*)?$/i);
+  if (!m) return { n: NaN, a: null };
+  return { n: parseFloat(m[1]), a: m[2] ? m[2].toUpperCase() : null };
+}
+function parseDate(v) {
+  const s = String(v).trim();
+  if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?/.test(s)) return Date.parse(s.replace(" ", "T").replace(/(\.\d+)?$/, "$1") + (/[zZ+]/.test(s.slice(10)) ? "" : "Z"));
+  const m = s.match(/^(\d{1,2})[./](\d{1,2})[./](\d{2,4})[ ,]+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if (m) { const y = m[3].length === 2 ? 2000 + +m[3] : +m[3]; return Date.UTC(y, m[2] - 1, +m[1], +m[4], +m[5], +(m[6] || 0)); }
+  if (/^\d{12,13}$/.test(s)) return +s;
+  return Date.parse(s);
+}
+function hashStr(s) { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
+
+function mapImport(rows, marketSel) {
+  const hi = rows.findIndex((r) => r.some((c) => /date|time|время|дата/i.test(c)) && r.some((c) => /price|цена/i.test(c)));
+  if (hi < 0) throw new Error("Не найдена строка заголовков (Date / Price)");
+  const H = rows[hi].map((h) => String(h).trim().toLowerCase());
+  const col = (...re) => H.findIndex((h) => re.some((r) => r.test(h)));
+  const c = {
+    time: col(/^date|^time|utc|время|дата/),
+    sym: col(/^pair$|^symbol$|^market$|^пара$|contract/),
+    side: col(/^side$|^type$|direction|направление|сторона/),
+    price: col(/^price$|^цена$|avg.*price|average/),
+    qty: col(/^executed$|^quantity|^qty|^filled|^исполнено|^количество/),
+    quote: col(/^amount$|^total$|^quote|^сумма|^объем|^объём/),
+    fee: col(/^fee$|^комиссия$|^commission$/),
+    feeCoin: col(/fee coin|fee asset|commission asset|валюта комиссии/),
+    pnl: col(/realized|реализ/),
+    oid: col(/order.?id|order no|ордер/),
+  };
+  for (const k of ["time", "sym", "side", "price"]) if (c[k] < 0) throw new Error(`Не найдена колонка: ${k}`);
+  if (c.qty < 0 && c.quote < 0) throw new Error("Не найдены колонки количества");
+  const market = marketSel === "auto" ? (c.pnl >= 0 ? "usdm" : "spot") : marketSel;
+
+  const existing = new Set(S.trades.map((t) => `${t.market}|${t.symbol}|${Math.floor(t.t / 1000)}|${+t.price}|${+t.qty}`));
+  const seen = new Map();
+  const out = []; let dup = 0, bad = 0;
+  for (const r of rows.slice(hi + 1)) {
+    const t = parseDate(r[c.time]);
+    const symbol = String(r[c.sym] || "").replace(/[-_/ ]/g, "").toUpperCase();
+    const side = /buy|покуп|long/i.test(r[c.side]) ? "BUY" : /sell|прод|short/i.test(r[c.side]) ? "SELL" : null;
+    const price = numAsset(r[c.price]).n;
+    const qa = c.qty >= 0 ? numAsset(r[c.qty]) : { n: NaN, a: null };
+    const qq = c.quote >= 0 ? numAsset(r[c.quote]) : { n: NaN, a: null };
+    const qty = isFinite(qa.n) ? qa.n : qq.n / price;
+    const quoteQty = isFinite(qq.n) ? qq.n : qty * price;
+    if (!isFinite(t) || !symbol || !side || !isFinite(price) || !isFinite(qty) || !qty) { bad++; continue; }
+    const fee = c.fee >= 0 ? numAsset(r[c.fee]) : { n: 0, a: null };
+    const feeAsset = (c.feeCoin >= 0 ? String(r[c.feeCoin]).trim().toUpperCase() : fee.a) || null;
+    let [base, quote] = splitSymbol(symbol);
+    if (qa.a && symbol.startsWith(qa.a)) { base = qa.a; quote = symbol.slice(qa.a.length) || quote; }
+    else if (qq.a && symbol.endsWith(qq.a)) { quote = qq.a; base = symbol.slice(0, -qq.a.length) || base; }
+    const dk = `${market}|${symbol}|${Math.floor(t / 1000)}|${+price}|${+qty}`;
+    if (existing.has(dk)) { dup++; continue; }
+    const sig = [market, symbol, t, side, price, qty, quoteQty].join("|");
+    const n = (seen.get(sig) || 0) + 1; seen.set(sig, n);
+    out.push({
+      user_id: USER.id, market, symbol, base_asset: market === "spot" ? base : null, quote_asset: quote,
+      trade_id: "csv-" + hashStr(sig) + "-" + n, order_id: c.oid >= 0 && r[c.oid] ? String(r[c.oid]).trim() : null,
+      side, price, qty, quote_qty: quoteQty, commission: isFinite(fee.n) ? Math.abs(fee.n) : 0, commission_asset: feeAsset,
+      realized_pnl: market === "usdm" && c.pnl >= 0 ? numAsset(r[c.pnl]).n || 0 : null,
+      executed_at: new Date(t).toISOString(), source: "csv",
     });
-    log(error ? "Ошибка входа: " + error.message : "Вход выполнен");
-  };
+  }
+  return { rows: out, dup, bad, market };
+}
 
-  document.getElementById("save").onclick = async () => {
-    try {
-      const r = await call("save-keys", {
-        apiKey: document.getElementById("apiKey").value.trim(),
-        apiSecret: document.getElementById("apiSecret").value.trim(),
-      });
-      log(JSON.stringify(r, null, 2));
-    } catch (e) { log(e.message); }
-  };
+$("#impFile").onchange = async (e) => {
+  const file = e.target.files[0];
+  IMPORT = null; $("#impBtn").disabled = true;
+  if (!file) return;
+  try {
+    let rows;
+    if (/\.xlsx?$/i.test(file.name)) {
+      await loadXLSX();
+      const wb = XLSX.read(await file.arrayBuffer());
+      rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: false, defval: "" });
+    } else rows = parseCSV(await file.text());
+    IMPORT = mapImport(rows, $("#impMarket").value);
+    const r = IMPORT.rows;
+    $("#impPreview").innerHTML = r.length
+      ? `Найдено <b style="color:var(--text)">${NF0.format(r.length)}</b> новых сделок (${IMPORT.market === "spot" ? "Spot" : "Futures"}) · ${new Date(Math.min(...r.map((x) => Date.parse(x.executed_at)))).toLocaleDateString("ru-RU")} — ${new Date(Math.max(...r.map((x) => Date.parse(x.executed_at)))).toLocaleDateString("ru-RU")}${IMPORT.dup ? ` · дубликатов пропущено: ${IMPORT.dup}` : ""}${IMPORT.bad ? ` · нераспознанных строк: ${IMPORT.bad}` : ""}`
+      : `Новых сделок нет${IMPORT.dup ? ` (все ${IMPORT.dup} уже загружены)` : ""}`;
+    $("#impBtn").disabled = !r.length;
+  } catch (err) { $("#impPreview").innerHTML = `<span class="neg">${esc(err.message)}</span>`; }
+};
+$("#impMarket").onchange = () => $("#impFile").files[0] && $("#impFile").onchange({ target: $("#impFile") });
+$("#impBtn").onclick = async () => {
+  if (!IMPORT?.rows.length) return;
+  const btn = $("#impBtn"); btn.disabled = true;
+  let done = 0;
+  try {
+    for (let i = 0; i < IMPORT.rows.length; i += 500) {
+      const { error } = await sb.from("trades").upsert(IMPORT.rows.slice(i, i + 500), { onConflict: "user_id,market,symbol,trade_id", ignoreDuplicates: true });
+      if (error) throw error;
+      done += Math.min(500, IMPORT.rows.length - i);
+      btn.textContent = `Импорт… ${done}/${IMPORT.rows.length}`;
+    }
+    toast(`Импортировано ${done} сделок`);
+    $("#impFile").value = ""; $("#impPreview").textContent = ""; IMPORT = null;
+    await loadData();
+  } catch (err) { toast(err.message, true); }
+  btn.textContent = "Импортировать";
+};
 
-  document.getElementById("sync").onclick = async () => {
-    try {
-      const r = await call("sync");
-      log(JSON.stringify(r, null, 2));
-    } catch (e) { log(e.message); }
-  };
+$("#reload").onclick = () => loadData();
+$("#wipeCsv").onclick = async () => {
+  if (!confirm("Удалить все сделки, импортированные из файлов?")) return;
+  const { error } = await sb.from("trades").delete().eq("user_id", USER.id).eq("source", "csv");
+  if (error) return toast(error.message, true);
+  await loadData();
+};
+$("#wipeAll").onclick = async () => {
+  if (!confirm("Удалить ВСЕ сделки? Заметки сохранятся. Повторная синхронизация загрузит API-сделки заново.")) return;
+  const { error } = await sb.from("trades").delete().eq("user_id", USER.id);
+  if (error) return toast(error.message, true);
+  try { await call("save-keys", { resetSync: true }); } catch (_) {}
+  await loadData();
+};
+
+/* ==================================================================
+   Навигация и фильтры
+   ================================================================== */
+function seg(sel, fn) {
+  $$(sel + " button").forEach((b) => (b.onclick = () => {
+    $$(sel + " button").forEach((x) => x.classList.remove("active"));
+    b.classList.add("active");
+    fn(b.dataset.v);
+  }));
+}
+seg("#fPeriod", (v) => { S.filter.period = v; S.filter.from = S.filter.to = null; $("#fFrom").value = $("#fTo").value = ""; render(); });
+seg("#fMarket", (v) => { S.filter.market = v; render(); });
+$("#fFrom").onchange = (e) => { S.filter.from = e.target.value || null; $$("#fPeriod button").forEach((x) => x.classList.remove("active")); render(); };
+$("#fTo").onchange = (e) => { S.filter.to = e.target.value || null; $$("#fPeriod button").forEach((x) => x.classList.remove("active")); render(); };
+
+function switchTab(t) {
+  currentTab = t;
+  $$(".tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === t));
+  for (const id of ["dash", "trades", "calendar", "journal", "settings"]) $("#tab-" + id).classList.toggle("hidden", id !== t);
+  $("#filters").classList.toggle("hidden", t === "settings");
+  try { localStorage.setItem("cj.tab", t); } catch (_) {}
+  render();
+}
+$("#tabs").onclick = (e) => e.target.dataset.tab && switchTab(e.target.dataset.tab);
+
+async function boot() {
+  let t = "dash";
+  try { t = localStorage.getItem("cj.tab") || "dash"; } catch (_) {}
+  switchTab(t);
+  try {
+    await loadKeyAndJob();
+    await loadData();
+    if (!KEY && !S.trades.length) switchTab("settings");
+  } catch (err) { toast(err.message, true); }
+}
+
+// Если сессии нет — показываем вход
+sb.auth.getSession().then(({ data }) => { if (!data.session) $("#auth").classList.remove("hidden"); });
 </script>
 </body>
 </html>
