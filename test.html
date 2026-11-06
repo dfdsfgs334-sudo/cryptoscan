@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Journal test</title>
+<style>
+  body { font-family: system-ui, sans-serif; background:#0b0f1a; color:#e6f1ff; max-width:520px; margin:40px auto; padding:0 16px; }
+  input { width:100%; padding:10px; margin:6px 0 12px; background:#131a2b; color:#e6f1ff; border:1px solid #2a3550; border-radius:8px; box-sizing:border-box; }
+  button { padding:10px 16px; margin-right:8px; background:#00e5ff; color:#001018; border:0; border-radius:8px; font-weight:600; cursor:pointer; }
+  pre { background:#131a2b; padding:12px; border-radius:8px; white-space:pre-wrap; }
+  h3 { margin-top:28px; }
+</style>
+</head>
+<body>
+<h2>Тест дневника</h2>
+
+<h3>1. Вход</h3>
+<input id="email" placeholder="email" />
+<input id="password" type="password" placeholder="пароль" />
+<button id="login">Войти</button>
+
+<h3>2. Подключить ключ Binance</h3>
+<input id="apiKey" placeholder="API Key" />
+<input id="apiSecret" type="password" placeholder="Secret Key" />
+<button id="save">Сохранить ключ</button>
+
+<h3>3. Загрузить сделки</h3>
+<button id="sync">Синхронизировать</button>
+
+<pre id="log">Лог появится здесь</pre>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+  const SUPABASE_URL = "https://jklcjlqpzzmfyvbvgohc.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_1Y3DN8WjIJaJfmmmKDf22w_bNr2UU0F";
+
+  const sb = supabase.createClient(PROJECT_URL, ANON_KEY);
+  const log = (msg) => (document.getElementById("log").textContent = msg);
+
+  async function call(fn, body) {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) throw new Error("Сначала войди");
+    const res = await fetch(`${PROJECT_URL}/functions/v1/${fn}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`,
+        "apikey": ANON_KEY,
+      },
+      body: JSON.stringify(body ?? {}),
+    });
+    return { status: res.status, body: await res.json() };
+  }
+
+  document.getElementById("login").onclick = async () => {
+    const { error } = await sb.auth.signInWithPassword({
+      email: document.getElementById("email").value,
+      password: document.getElementById("password").value,
+    });
+    log(error ? "Ошибка входа: " + error.message : "Вход выполнен");
+  };
+
+  document.getElementById("save").onclick = async () => {
+    try {
+      const r = await call("save-keys", {
+        apiKey: document.getElementById("apiKey").value.trim(),
+        apiSecret: document.getElementById("apiSecret").value.trim(),
+      });
+      log(JSON.stringify(r, null, 2));
+    } catch (e) { log(e.message); }
+  };
+
+  document.getElementById("sync").onclick = async () => {
+    try {
+      const r = await call("sync");
+      log(JSON.stringify(r, null, 2));
+    } catch (e) { log(e.message); }
+  };
+</script>
+</body>
+</html>
